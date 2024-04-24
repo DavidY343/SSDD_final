@@ -11,10 +11,14 @@ class client :
         OK = 0
         ERROR = 1
         USER_ERROR = 2
+        OTHER_CASES = 3
+        ANTOHER_CASES = 4
 
     # ****************** ATTRIBUTES ******************
     _server = None
     _port = -1
+    _connected = False
+    _user = None
 
     # ******************** METHODS *******************
 
@@ -37,14 +41,25 @@ class client :
             print('Error al crear el socket: ', e)
             return None
 
+    # Método para hacer las comprobaciones de las cadenas que no pueden superar los 256 bytes.
+    # Se comprueba 255 para tener en cuenta el \0
+    def excede_limite_255_bytes(cadena):
+        encoded_cadena = cadena.encode('utf-8')
+        # Comprobar si la longitud de la cadena codificada excede 255 bytes
+        return len(encoded_cadena) > 255
+
     @staticmethod
     def  register(user) :
         socketC = connect_socket()
         if socketC is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
+            print("REGISTER FAIL")
             return client.RC.ERROR
         try:
-            message = b'REGISTER\0' + user.encode('utf-8') + b'\0'
+            message = (
+                b'REGISTER\0' + 
+                user.encode('utf-8') + b'\0'
+            )
             socketC.sendall(message)
             response = read_response(socketC)
 
@@ -60,6 +75,7 @@ class client :
                 return client.RC.USER_ERROR
         except Exception as e:
             print('Error:', e)
+            print("REGISTER FAIL")
             return client.RC.USER_ERROR
 
         finally:
@@ -72,24 +88,29 @@ class client :
         socketC = connect_socket()
         if socketC is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
+            print("UNREGISTER FAIL")
             return client.RC.ERROR
         try:
-            message = b'UNREGISTER\0' + user.encode('utf-8') + b'\0'
+            message = (
+                b'UNREGISTER\0' + 
+                user.encode('utf-8') + b'\0'
+            )
             socketC.sendall(message)
             response = read_response(socketC)
 
             #Gestion del resultado
             if response == 0:
-                print("CONNECT OK")
+                print("UNREGISTER OK")
                 return client.RC.OK
             elif response == 1:
-                print("CONNECT FAIL, USER DOES NOT EXIST")
+                print("USER DOES NOT EXIST")
                 return client.RC.ERROR
-            elif response == 3:
-                print("USER ALREADY CONNECTED")
+            else:
+                print("UNREGISTER FAIL")
                 return client.RC.USER_ERROR
         except Exception as e:
             print('Error:', e)
+            print("UNREGISTER FAIL")
             return client.RC.USER_ERROR
 
         finally:
@@ -102,51 +123,199 @@ class client :
         socketC = connect_socket()
         if socketC is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
-            return client.RC.ERROR
+            print("CONNECT FAIL")
+            return client.RC.OTHER_CASES
         try:
-            message = b'CONNECT\0' + user.encode('utf-8') + b'\0'
+            message = (
+                b'CONNECT\0' + 
+                user.encode('utf-8') + b'\0' + 
+                self._port.encode('utf-8') + b'\0'
+            )
             socketC.sendall(message)
             response = read_response(socketC)
 
             #Gestion del resultado
             if response == 0:
-                print("UNREGISTER OK")
+                print("CONNECT OK")
+                self._connected = True
+                self._user = user
+                #Lanzar un hilo para que se convierta en server y taaal
                 return client.RC.OK
             elif response == 1:
-                print("USERNAME DOES NOT EXIST")
+                print("CONNECT FAIL, USER DOES NOT EXIST")
                 return client.RC.ERROR
-            else:
-                print("UNREGISTER FAIL")
+            elif response == 2:
+                print("USER ALREADY CONNECTED")
                 return client.RC.USER_ERROR
+            else:
+                print("CONNECT FAIL")
+                return client.RC.OTHER_CASES
         except Exception as e:
             print('Error:', e)
-            return client.RC.USER_ERROR
+            print("CONNECT FAIL")
+            return client.RC.OTHER_CASES
+
+        finally:
+            print('closing socket')
+            socketC.close()
+    
+    @staticmethod
+    def  disconnect(user) :
+        socketC = connect_socket()
+        if socketC is None:
+            print("Error al crear el socket. No se pudo establecer la conexión.")
+            print("DISCONNECT FAIL")
+            return client.RC.OTHER_CASES
+        try:
+            message = (
+                b'DISCONNECT\0' + 
+                user.encode('utf-8') + b'\0'
+            )
+            socketC.sendall(message)
+            response = read_response(socketC)
+            self._connected = False
+            self._user = None
+            #Parar ejecución del hilo
+            #Gestion del resultado
+            if response == 0:
+                print("DISCONNECT OK")
+                return client.RC.OK
+            elif response == 1:
+                print("DISCONNECT FAIL / USER DOES NOT EXIST")
+                return client.RC.ERROR
+            elif response == 2:
+                print("DISCONNECT FAIL / USER NOT CONNECTED")
+                return client.RC.USER_ERROR
+            else:
+                print("DISCONNECT FAIL")
+                return client.RC.OTHER_CASES
+        except Exception as e:
+            print('Error:', e)
+            print("DISCONNECT FAIL")
+            return client.RC.OTHER_CASES
 
         finally:
             print('closing socket')
             socketC.close()
 
-
-    
-    @staticmethod
-    def  disconnect(user) :
-        #  Write your code here
-        return client.RC.ERROR
-
     @staticmethod
     def  publish(fileName,  description) :
-        #  Write your code here
-        return client.RC.ERROR
+        socketC = connect_socket()
+        if socketC is None:
+            print("PUBLISH FAIL")
+            print("Error al crear el socket. No se pudo establecer la conexión.")
+            return client.RC.ANTOHER_CASES
+        try:
+            message = (
+                b'PUBLISH\0' + 
+                self._user.encode('utf-8') + b'\0' + 
+                fileName.replace(" ", "").encode('utf-8') + b'\0' + 
+                description.encode('utf-8') + b'\0'
+            )
+            socketC.sendall(message)
+            response = read_response(socketC)
+            if response == 0:
+                print("PUBLISH OK")
+                return client.RC.OK
+            elif response == 1:
+                print("PUBLISH FAIL, USER DOES NOT EXIST")
+                return client.RC.ERROR
+            elif response == 2:
+                print("PUBLISH FAIL, USER NOT CONNECTED")
+                return client.RC.USER_ERROR
+            elif response == 3:
+                print("PUBLISH FAIL, CONTENT ALREDAY PUBLISHED")
+                return client.RC.OTHER_CASES
+            else:
+                print("PUBLISH FAIL")
+                return client.RC.ANTOHER_CASES
+        except Exception as e:
+            print("PUBLISH FAIL")
+            print('Error:', e)
+            return client.RC.ANTOHER_CASES
+
+        finally:
+            print('closing socket')
+            socketC.close()
 
     @staticmethod
     def  delete(fileName) :
-        #  Write your code here
-        return client.RC.ERROR
+        socketC = connect_socket()
+        if socketC is None:
+            print("Error al crear el socket. No se pudo establecer la conexión.")
+            print("DELETE FAIL")
+            return client.RC.ANTOHER_CASES
+        try:
+            message = (
+                b'DELETE\0' + 
+                self._user.encode('utf-8') + b'\0' + 
+                fileName.replace(" ", "").encode('utf-8') + b'\0'
+            )
+            socketC.sendall(message)
+            response = read_response(socketC)
+            if response == 0:
+                print("DELETE OK")
+                return client.RC.OK
+            elif response == 1:
+                print("DELETE FAIL, USER DOES NOT EXIST")
+                return client.RC.ERROR
+            elif response == 2:
+                print("DELETE FAIL, USER NOT CONNECTED")
+                return client.RC.USER_ERROR
+            elif response == 3:
+                print("DELETE FAIL, CONTENT NOT PUBLISHED")
+                return client.RC.OTHER_CASES
+            else:
+                print("DELETE FAIL")
+                return client.RC.ANTOHER_CASES
+        except Exception as e:
+            # El print del error quizás se puede quitar
+            print('Error:', e)
+            print("DELETE FAIL")
+            return client.RC.ANTOHER_CASES
+
+        finally:
+            print('closing socket')
+            socketC.close()
 
     @staticmethod
     def  listusers() :
-        #  Write your code here
-        return client.RC.ERROR
+        socketC = connect_socket()
+        if socketC is None:
+            print("Error al crear el socket. No se pudo establecer la conexión.")
+            print("LIST_USERS FAIL")
+            return client.RC.OTHER_CASES
+        try:
+            message = (
+                b'LIST_USERS\0' + 
+                self._user.encode('utf-8') + b'\0'
+            )
+            socketC.sendall(message)
+            response = read_response(socketC)
+            self._connected = False
+            self._user = None
+            #Gestion del resultado
+            if response == 0:
+                # Recibir un segundo mensaje con toda la lista de usuarios
+                print("LIST_USERS OK")
+                return client.RC.OK
+            elif response == 1:
+                print("LIST_USERS FAIL, USER DOES NOT EXIST")
+                return client.RC.ERROR
+            elif response == 2:
+                print("LIST_USERS FAIL, USER NOT CONNECTED")
+                return client.RC.USER_ERROR
+            else:
+                print("LIST_USERS FAIL")
+                return client.RC.OTHER_CASES
+        except Exception as e:
+            print('Error:', e)
+            print("LIST_USERS FAIL")
+            return client.RC.OTHER_CASES
+
+        finally:
+            print('closing socket')
+            socketC.close()
 
     @staticmethod
     def  listcontent(user) :
@@ -230,6 +399,7 @@ class client :
 
                     elif(line[0]=="QUIT") :
                         if (len(line) == 1) :
+                            #Parar ejecución del hilo
                             break
                         else :
                             print("Syntax error. Use: QUIT")
