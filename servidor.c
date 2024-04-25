@@ -178,6 +178,7 @@ void treat_request(void *sc_request)
 			pthread_exit(0);
 		}
 		sprintf(print_1_username,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
 		// PORT
 		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
 		{
@@ -212,128 +213,436 @@ void treat_request(void *sc_request)
 			printf("Error enviando al socket\n");
 		}
 	}
+	else if (strcmp(buffer, "PUBLISH") == 0)
+	{
+		sprintf(print_1_operation,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// DATE
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error2\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_date,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// USERNAME
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_username,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// FILENAME
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_file,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// DESCRIPTION
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(description,"%s", buffer);
 
+		// LLamar al backend para meter en la lista, luego memset para vaciar
+		pthread_mutex_lock(&mutex_backend);
+		error = register_file_from_user(print_1_username, print_1_file, description);
+		pthread_mutex_unlock(&mutex_backend);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+
+		// LLamar al rpc
+		if (create_client() == -1)
+		{
+			printf("Error initialiting rpc\n");
+			return (-1);
+		}
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, print_1_file, &result_1, clnt);
+		if (retval_1 != RPC_SUCCESS) {
+			clnt_perror (clnt, "call failed");
+		}
+		clnt_destroy (clnt);
+
+		// Enviar el código de error de vuelta al cliente en formato red
+		error = htonl(error);
+		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		{
+			printf("Error enviando al socket\n");
+		}
+	}
+	else if (strcmp(buffer, "DELETE") == 0)
+	{
+		sprintf(print_1_operation,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// DATE
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error2\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_date,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// USERNAME
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_username,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// FILENAME
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_file,"%s", buffer);
+
+		// LLamar al backend para meter en la lista, luego memset para vaciar
+		pthread_mutex_lock(&mutex_backend);
+		error = unregister_file_from_user(print_1_username, print_1_file);
+		pthread_mutex_unlock(&mutex_backend);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+
+		// LLamar al rpc
+		if (create_client() == -1)
+		{
+			printf("Error initialiting rpc\n");
+			return (-1);
+		}
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, print_1_file, &result_1, clnt);
+		if (retval_1 != RPC_SUCCESS) {
+			clnt_perror (clnt, "call failed");
+		}
+		clnt_destroy (clnt);
+
+		// Enviar el código de error de vuelta al cliente en formato red
+		error = htonl(error);
+		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		{
+			printf("Error enviando al socket\n");
+		}
+	}
+	else if (strcmp(buffer, "DISCONNECT") == 0)
+	{
+		sprintf(print_1_operation,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// DATE
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error2\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_date,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// USERNAME
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_username,"%s", buffer);
+
+		// LLamar al backend para meter en la lista, luego memset para vaciar
+		pthread_mutex_lock(&mutex_backend);
+		error = disconnect_user(print_1_username);
+		pthread_mutex_unlock(&mutex_backend);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+
+		// LLamar al rpc
+		if (create_client() == -1)
+		{
+			printf("Error initialiting rpc\n");
+			return (-1);
+		}
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		if (retval_1 != RPC_SUCCESS) {
+			clnt_perror (clnt, "call failed");
+		}
+		clnt_destroy (clnt);
+
+		// Enviar el código de error de vuelta al cliente en formato red
+		error = htonl(error);
+		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		{
+			printf("Error enviando al socket\n");
+		}
+	}
+	else if (strcmp(buffer, "LIST_USERS") == 0)
+	{
+		t_response_user *respuesta_user = (t_response_user *) malloc(sizeof(t_response_user));
+		respuesta_user->next = NULL;
+		int n_user;
+		sprintf(print_1_operation,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// DATE
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error2\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_date,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// USERNAME
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_username,"%s", buffer);
+
+		// LLamar al backend para meter en la lista, luego memset para vaciar
+		pthread_mutex_lock(&mutex_backend);
+		error = list_users(print_1_username, respuesta_user, &n_user);
+		pthread_mutex_unlock(&mutex_backend);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+
+		// LLamar al rpc
+		if (create_client() == -1)
+		{
+			printf("Error initialiting rpc\n");
+			return (-1);
+		}
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		if (retval_1 != RPC_SUCCESS) {
+			clnt_perror (clnt, "call failed");
+		}
+		clnt_destroy (clnt);
+
+		// Enviar el código de error de vuelta al cliente en formato red
+		error = htonl(error);
+		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		{
+			printf("Error enviando al socket\n");
+		}
+
+		// Enviar el número de usuarios conectados al cliente
+		int n_users_network = htonl(n_user);
+		if (sendMessage(sc, (char *) &n_users_network, sizeof(int)) < 0)
+		{
+			perror("Error enviando el número de usuarios");
+			close(sc);
+			pthread_exit(0);
+		}
+
+		// Enviar la información de cada usuario
+		t_response_user *current = respuesta_user;
+		while (current != NULL)
+		{
+			// Enviar el nombre de usuario
+			if (sendMessage(sc, current->username, strlen(current->username) + 1) < 0)
+			{
+				perror("Error enviando el nombre del usuario");
+				close(sc);
+				pthread_exit(0);
+			}
+
+			// Enviar la dirección IP del usuario
+			if (sendMessage(sc, current->ip, strlen(current->ip) + 1) < 0)
+			{
+				perror("Error enviando la dirección IP");
+				close(sc);
+				pthread_exit(0);
+			}
+
+			// Enviar el puerto del usuario
+			if (sendMessage(sc, current->port, strlen(current->port) + 1) < 0)
+			{
+				perror("Error enviando el puerto");
+				close(sc);
+				pthread_exit(0);
+			}
+
+			current = current->next;
+		}
+		t_response_user *temp;
+		current = respuesta_user;
+		while (current != NULL) {
+			temp = current;
+			current = current->next;
+			free(temp);
+		}
+	}
+	else if (strcmp(buffer, "LIST_CONTENT") == 0)
+	{
+		t_response_list *respuesta_list = (t_response_list *) malloc(sizeof(t_response_list));
+		char *username2;
+		sprintf(print_1_operation,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// DATE
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error2\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_date,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// USERNAME
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_username,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// USERNAME2
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(username2,"%s", buffer);
+
+		// LLamar al backend para meter en la lista, luego memset para vaciar
+		pthread_mutex_lock(&mutex_backend);
+		error = list_content(print_1_username, respuesta_list, username2);
+		pthread_mutex_unlock(&mutex_backend);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+
+		// LLamar al rpc
+		if (create_client() == -1)
+		{
+			printf("Error initialiting rpc\n");
+			return (-1);
+		}
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		if (retval_1 != RPC_SUCCESS) {
+			clnt_perror (clnt, "call failed");
+		}
+		clnt_destroy (clnt);
+
+		// Enviar el código de error de vuelta al cliente en formato red
+		error = htonl(error);
+		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		{
+			printf("Error enviando al socket\n");
+		}
+	}
+	else if (strcmp(buffer, "LIST_CONTENT") == 0)
+	{
+		// Asegúrate de asignar memoria para respuesta_list
+		t_response_list *respuesta_list = (t_response_list *) malloc(sizeof(t_response_list));
+		respuesta_list->next = NULL;
+		char *username2;
+		sprintf(print_1_operation,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// DATE
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error2\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_date,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// USERNAME
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_username,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// USERNAME2
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(username2,"%s", buffer);
+
+		// LLamar al backend para meter en la lista, luego memset para vaciar
+		pthread_mutex_lock(&mutex_backend);
+		int error = list_content(print_1_username, respuesta_list, username2);
+		pthread_mutex_unlock(&mutex_backend);
+
+		if (create_client() == -1)
+		{
+			printf("Error initialiting rpc\n");
+			return (-1);
+		}
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		if (retval_1 != RPC_SUCCESS) {
+			clnt_perror (clnt, "call failed");
+		}
+		clnt_destroy (clnt);
+
+		// Enviar el código de error de vuelta al cliente en formato red
+		error = htonl(error);
+		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		{
+			printf("Error enviando al socket\n");
+		}
+
+		// Ahora que tienes el listado, envía el número total de archivos al cliente
+		int file_count = 0;
+		t_response_list *current = respuesta_list;
+		while (current != NULL) {
+			file_count++;
+			current = current->next;
+		}
+
+		int network_file_count = htonl(file_count);
+		if (sendMessage(sc, (char *) &network_file_count, sizeof(int)) < 0) {
+			perror("Error enviando el conteo de archivos");
+			free(respuesta_list);
+			close(sc);
+			pthread_exit(0);
+		}
+
+		// Luego envía la información de cada archivo
+		current = respuesta_list;
+		while (current != NULL) {
+			if (sendMessage(sc, current->filename, strlen(current->filename) + 1) < 0) {
+				perror("Error enviando el nombre del archivo");
+				break;
+			}
+
+			if (sendMessage(sc, current->description, strlen(current->description) + 1) < 0) {
+				perror("Error enviando la descripción del archivo");
+				break;
+			}
+
+			current = current->next;
+		}
+
+		// Limpia la memoria al final
+		t_response_list *temp;
+		current = respuesta_list;
+		while (current != NULL) {
+			temp = current;
+			current = current->next;
+			free(temp);
+		}
+	}
+	else
+	{
+		printf("Ha habido un error\n");
+		printf("%s\n", buffer);
+	}
 	// Acabar 
 	close(sc);
 	pthread_exit(0);
-	/*
-	switch (op)
-	{
-		case 0: // Reseteo de la lista
-			error = init();
-			break;
-		case 1: // Establecer un valor
-			if (recvMessage(sc, (char *) &key, sizeof(int)) < 0)
-			{
-				printf("Error recibiendo del socket\n");
-			}
-			key = ntohl(key);
-			
-			readLine(sc, v1, MAX_VALUE_LENGTH);
-
-			if (recvMessage(sc, (char *) &N, sizeof(int)) < 0)
-			{
-				printf("Error recibiendo del socket\n");
-			}
-			N = ntohl(N);
-
-			for (int i = 0; i < N; i++) {
-				char v2_str[20];
-				readLine(sc, v2_str, 20);
-				v2[i] = strtod(v2_str, NULL);
-			}
-
-			error = set_value(key, v1, N, v2);
-			break;
-		case 2: // Obtener un valor
-
-			if (recvMessage(sc, (char *) &key, sizeof(int)) < 0)
-			{
-				printf("Error recibiendo del socket\n");
-			}
-			key = ntohl(key);
-
-			error = get_value(key, v1, &N, v2);
-
-			if (sendMessage(sc, v1, strlen(v1) + 1) < 0)
-			{
-				printf("Error recibiendo del socket\n");
-			}
-
-			int N_network = htonl(N);
-			if (sendMessage(sc, (char *)&N_network, sizeof(int)) < 0)
-			{
-				printf("Error enviando al socket\n");
-			}
-
-			for (int i = 0; i < N; i++)
-			{
-				char v2_str[20]; 
-				snprintf(v2_str, sizeof(v2_str), "%lf", v2[i]);
-				if (sendMessage(sc, v2_str, strlen(v2_str) + 1) < 0)
-				{
-					printf("Error enviando al socket\n");
-				}
-			}
-
-			if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
-			{
-				printf("Error enviando al socket\n");
-			}
-			break;
-		case 3: // Modificar un valor
-			if (recvMessage(sc, (char *) &key, sizeof(int)) < 0)
-			{
-				printf("Error recibiendo del socket\n");
-			}
-			key = ntohl(key);
-
-			readLine(sc, v1, MAX_VALUE_LENGTH);
-
-			if (recvMessage(sc, (char *) &N, sizeof(int)) < 0)
-			{
-				printf("Error recibiendo del socket\n");
-			}
-			N = ntohl(N);
-
-			for (int i = 0; i < N; i++) {
-				char v2_str[20];
-				readLine(sc, v2_str, 20);
-				v2[i] = strtod(v2_str, NULL);
-			}
-
-			error = modify_value(key, v1, N, v2);
-			break;
-		case 4: // Eliminar una clave
-			if (recvMessage(sc, (char *) &key, sizeof(int)) < 0)
-			{
-				printf("Error recibiendo del socket\n");
-			}
-			key = ntohl(key);
-
-			error = delete_key(key);
-			break;
-		case 5: // Verificar si existe una clave
-			if (recvMessage(sc, (char *) &key, sizeof(int)) < 0)
-			{
-				printf("Error recibiendo del socket\n");
-			}
-			key = ntohl(key);
-
-			error = exist(key);
-			break;
-	}
-	// Enviar el código de error de vuelta al cliente en formato red
-	error = htonl(error);
-	if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
-    {
-        printf("Error enviando al socket\n");
-    }
-	// Cerrar el socket del cliente
-	close(sc);
-	// Salir del hilo
-	pthread_exit(0);
-	*/
 }
 
 int main(int argc, char *argv[])
