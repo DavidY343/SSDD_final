@@ -1,102 +1,170 @@
-#include <stdio.h> 
+#include "list.h"
 #include <stdlib.h>
 #include <string.h>
-#include "list.h"
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <pthread.h>
 
-int init_list(List *l)
+extern List messages;
+extern int inited_list = 0;
+extern pthread_mutex_t mutex;
+
+int init_list()
 {
-	*l = NULL;
-	return (0);
-}
-
-int set(List *l, char *v1, int key, int N, double *v2)
-{
-
-    struct Node *newNode = (struct Node *)malloc(sizeof(struct Node));
-    if (newNode == NULL)
-        return -1;
-    strcpy(newNode->v1, v1);
-    newNode->key = key;
-    newNode->N = N;
-    for (int i = 0; i < N; i++)
-        newNode->v2[i] = v2[i];
-    newNode->next = *l;
-    *l = newNode;
+    pthread_mutex_lock(&mutex);
+    if (inited_list)
+    {
+        pthread_mutex_unlock(&mutex);
+        return (0);
+    }
+    messages = NULL;
+    inited_list = 1;
+    pthread_mutex_unlock(&mutex);
     return 0;
 }
 
-int exist_element(List l, int key)
-{
-    while (l != NULL)
-	{
-        if (l->key == key)
-            return (0);
-        l = l->next;
-    }
-    return (-1);
-}
+int destroy_list() {
+    pthread_mutex_lock(&mutex);
+    if (!inited_list)
+        init_list();
 
-int get_element(List l, int key, char *value1, int *N_value2, double *V_value2)
-{
-    while (l != NULL)
-	{
-        if (l->key == key)
-		{
-            strcpy(value1, l->v1);
-            *N_value2 = l->N;
-            memcpy(V_value2, l->v2, l->N * sizeof(double));
-            return 0;
+    // Liberar la lista de usuarios
+    node_t *current = messages;
+    while (current) {
+        node_t *next = current->next;
+        
+        // Liberar la lista de archivos
+        filelist_t *file_current = current->list_files;
+        while (file_current) {
+            filelist_t *file_next = file_current->next;
+            free(file_current);
+            file_current = file_next;
         }
-        l = l->next;
+
+        free(current); // Liberar el nodo de usuario
+        current = next;
     }
-    return -1;
+
+    messages = NULL;
+    inited_list = 0;
+    pthread_mutex_unlock(&mutex);
+    return 0;
 }
 
-int modify_element(List l, int key, char *new_v1, int new_N, double *new_v2)
+int register_user(char *username)
 {
-    while (l != NULL)
-	{
-        if (l->key == key)
-		{
-            strcpy(l->v1, new_v1);
-            l->N = new_N;
-            for (int i = 0; i < new_N; i++)
-                l->v2[i] = new_v2[i];
-            return 0;
+    pthread_mutex_lock(&mutex);
+    if (!inited_list)
+    {
+        pthread_mutex_unlock(&mutex);
+        init_list();
+        pthread_mutex_lock(&mutex);
+    }
+    // Verificar si el usuario ya existe
+    node_t *current = messages;
+    while (current){
+        if (strcmp(current->username, username) == 0)
+        {
+            pthread_mutex_unlock(&mutex);
+            return 1;
         }
-        l = l->next;
-    }
-    return -1;
-}
-
-int delete_element(List *l, int key)
-{
-    struct Node *prev = NULL;
-    struct Node *current = *l;
-
-    while (current != NULL && current->key != key)
-	{
-        prev = current;
         current = current->next;
     }
-    if (current == NULL)
-        return -1;
-    if (prev == NULL)
-        *l = current->next;
-    else
-        prev->next = current->next;
-    free(current);
+
+    // Crear un nuevo nodo para el usuario
+    node_t *new_node = (node_t *)malloc(sizeof(node_t));
+    if (!new_node) {
+        pthread_mutex_unlock(&mutex);
+        return -1; // Error al asignar memoria
+    }
+
+    strncpy(new_node->username, username, MAX_VALUE_LENGTH);
+    new_node->list_files = NULL;
+    new_node->next = messages;
+    messages = new_node;
+
+    pthread_mutex_unlock(&mutex);
     return 0;
 }
 
-int destroy(List *l)
+int unregister_user(char *username)
 {
-	struct Node *temp;
-    while (*l != NULL)
-	{
-        temp = *l;
-        *l = (*l)->next;
-        free(temp);
+    pthread_mutex_lock(&mutex);
+	if (!inited_list)
+    {
+        pthread_mutex_unlock(&mutex);
+        init_list();
+        pthread_mutex_lock(&mutex);
     }
-	return 0;
+    node_t *current = messages;
+    node_t *previous = NULL;
+
+    // Buscar al usuario en la lista
+    while (current) {
+        if (strcmp(current->username, username) == 0) {
+            if (previous) {
+                previous->next = current->next;
+            } else {
+                messages = current->next; // Eliminar el primer nodo
+            }
+
+            // Liberar el nodo de usuario y sus archivos
+            filelist_t *file_current = current->list_files;
+            while (file_current) {
+                filelist_t *file_next = file_current->next;
+                free(file_current);
+                file_current = file_next;
+            }
+
+            free(current); // Liberar el nodo de usuario
+            pthread_mutex_unlock(&mutex);
+            return 0;
+        }
+
+        previous = current;
+        current = current->next;
+    }
+
+    pthread_mutex_unlock(&mutex);
+    return 1; // Usuario no encontrado
+}
+
+int connect_user(int socket, char *port, char *username)
+{
+    pthread_mutex_lock(&mutex);
+    if (!inited_list)
+    {
+        pthread_mutex_unlock(&mutex);
+        init_list();
+        pthread_mutex_lock(&mutex);
+    }
+    node_t *current = messages;
+
+    // Buscar al usuario por su nombre
+    while (current) {
+        if (strcmp(current->username, username) == 0) {
+            if (strlen(current->ip) > 0) {
+                pthread_mutex_unlock(&mutex);
+                return 2; // El usuario ya está conectado
+            }
+
+            // Obtener la dirección IP del socket
+            struct sockaddr_in peer_addr;
+            socklen_t addr_len = sizeof(peer_addr);
+            if (getpeername(socket, (struct sockaddr *)&peer_addr, &addr_len) == 0) {
+                strncpy(current->ip, inet_ntoa(peer_addr.sin_addr), MAX_VALUE_LENGTH);
+                strncpy(current->port, port, MAX_VALUE_LENGTH);
+                pthread_mutex_unlock(&mutex);
+                return 0; // Conexión exitosa
+            }
+
+            pthread_mutex_unlock(&mutex);
+            return 3; // Error al obtener la dirección IP
+        }
+
+        current = current->next;
+    }
+
+    pthread_mutex_unlock(&mutex);
+    return 1; // Usuario no encontrado
 }

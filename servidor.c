@@ -8,14 +8,32 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include "lines.h"
+#include "mensaje.h"
+#include "list.h"
+#define MAX_VALUE_LENGTH 256
 
-	#define MAX_VALUE_LENGTH 256
-
-int sd; //descriptor del socket global
+CLIENT *clnt;
+int sd;
 pthread_mutex_t mutex_mensaje;
 pthread_cond_t cond_mensaje;
 int not_finished = true;
 char buffer[MAX_VALUE_LENGTH];
+pthread_mutex_t mutex_backend;
+
+static int create_client()
+{
+	char	*host;
+
+	host = getenv("IP_TUPLAS");
+	
+	clnt = clnt_create (host, LIST_SERVICE, LIST_SERVICE_V1, "udp");
+	if (clnt == NULL)
+	{
+		clnt_pcreateerror (host);
+		exit (1);
+	}
+	return (0);
+}
 
 // Función para manejar las solicitudes de los clientes
 void treat_request(void *sc_request)
@@ -25,18 +43,20 @@ void treat_request(void *sc_request)
 	not_finished = false;
 	pthread_cond_signal(&cond_mensaje);
 	pthread_mutex_unlock(&mutex_mensaje);
-
-
-	int op;
-	int key;
-	char v1[MAX_VALUE_LENGTH];
-	int N;
-	double	v2[20];
+	enum clnt_stat retval_1;
+	int result_1;
+	char *print_1_username;
+	char *print_1_operation;
+	char *print_1_date;
+	char *print_1_file;
 	int error;
+	char *description;
+	char *port;
+
 
 	// Recepción de la operación solicitada desde el cliente
 	if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
-	{//recibe el username
+	{
 		perror("Error\n");
 		close(sc);
 		pthread_exit(0);
@@ -45,30 +65,155 @@ void treat_request(void *sc_request)
 	// OPERACIONES
 	if (strcmp(buffer, "REGISTER") == 0)
 	{
+		sprintf(print_1_operation,"%s", buffer);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// DATE
 		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
 		{
 			perror("Error2\n");
 			close(sc);
 			pthread_exit(0);
 		}
-		error = resgister(buffer);
-		if (error == 0)
+		sprintf(print_1_date,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// USERNAME
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
 		{
-
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
 		}
-		else
+		sprintf(print_1_username,"%s", buffer);
+		
+		// LLamar al backend para meter en la lista, luego memset para vaciar
+		pthread_mutex_lock(&mutex_backend);
+		error = register_user(buffer)
+		pthread_mutex_unlock(&mutex_backend);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+
+		// LLamar al rpc
+		if (create_client() == -1)
 		{
-
+			printf("Error initialiting rpc\n");
+			return (-1);
 		}
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		if (retval_1 != RPC_SUCCESS) {
+			clnt_perror (clnt, "call failed");
+		}
+		clnt_destroy (clnt);
 
+		// Enviar el código de error de vuelta al cliente en formato red
+		error = htonl(error);
+		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		{
+			printf("Error enviando al socket\n");
+		}
 	}
-	// Enviar el código de error de vuelta al cliente en formato red
-	error = htonl(error);
-	if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
-    {
-        printf("Error enviando al socket\n");
-    }
+	else if (strcmp(buffer, "UNREGISTER") == 0)
+	{
+		sprintf(print_1_operation,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// DATE
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error2\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_date,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// USERNAME
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_username,"%s", buffer);
+
+		// LLamar al backend para meter en la lista, luego memset para vaciar
+		pthread_mutex_lock(&mutex_backend);
+		error = unregister_user(buffer)
+		pthread_mutex_unlock(&mutex_backend);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+
+		// LLamar al rpc
+		if (create_client() == -1)
+		{
+			printf("Error initialiting rpc\n");
+			return (-1);
+		}
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		if (retval_1 != RPC_SUCCESS) {
+			clnt_perror (clnt, "call failed");
+		}
+		clnt_destroy (clnt);
+
+		// Enviar el código de error de vuelta al cliente en formato red
+		error = htonl(error);
+		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		{
+			printf("Error enviando al socket\n");
+		}
+	}
+	else if (strcmp(buffer, "CONNECT") == 0)
+	{
+		sprintf(print_1_operation,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// DATE
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error2\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_date,"%s", buffer);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+		// USERNAME
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(print_1_username,"%s", buffer);
+		// PORT
+		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
+		{
+			perror("Error3\n");
+			close(sc);
+			pthread_exit(0);
+		}
+		sprintf(port,"%s", buffer);
+
+		// LLamar al backend para meter en la lista, luego memset para vaciar
+		pthread_mutex_lock(&mutex_backend);
+		error = connect_user(sc, port, print_1_username);
+		pthread_mutex_unlock(&mutex_backend);
+		memset(buffer, 0, MAX_VALUE_LENGTH);
+
+		// LLamar al rpc
+		if (create_client() == -1)
+		{
+			printf("Error initialiting rpc\n");
+			return (-1);
+		}
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		if (retval_1 != RPC_SUCCESS) {
+			clnt_perror (clnt, "call failed");
+		}
+		clnt_destroy (clnt);
+
+		// Enviar el código de error de vuelta al cliente en formato red
+		error = htonl(error);
+		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		{
+			printf("Error enviando al socket\n");
+		}
+	}
+
+	// Acabar 
 	close(sc);
 	pthread_exit(0);
 	/*
@@ -206,6 +351,7 @@ int main(int argc, char *argv[])
 		return (-1);
 	}
 	pthread_mutex_init(&mutex_mensaje, NULL);
+	pthread_mutex_init(&mutex_backend, NULL);
 	pthread_cond_init(&cond_mensaje, NULL);
 	pthread_attr_init(&t_attr);
 	pthread_attr_setdetachstate(&t_attr, PTHREAD_CREATE_DETACHED);
@@ -227,7 +373,16 @@ int main(int argc, char *argv[])
 		printf("Error en Bind\n");
 		return (-1);
 	}
-
+	// Obtener información del servidor después de bind para conocer la dirección y el puerto
+    struct sockaddr_in local_addr;
+    socklen_t local_size = sizeof(local_addr);
+	if (getsockname(sd, (struct sockaddr *)&local_addr, &local_size) == 0) {
+        printf("Servidor IP local: %s, Puerto: %d\n",
+               inet_ntoa(local_addr.sin_addr),
+               ntohs(local_addr.sin_port));
+    } else {
+        printf("Error al obtener la IP local\n");
+    }
 	//el servidor se quede esperando una conexión entrante
 	if (listen(sd, SOMAXCONN) < 0) {
 		printf("Error en Listen\n");
@@ -235,7 +390,7 @@ int main(int argc, char *argv[])
 	}
 
 	size = sizeof(client_addr);
-
+	/*
 	// FInd local ip
 	struct ifaddrs *ifaddr, *ifa;
     if (getifaddrs(&ifaddr) == -1) {// obtener las direcciones de red de todas las interfaces
@@ -255,8 +410,8 @@ int main(int argc, char *argv[])
     if (ip_server == NULL) { // si no se encuentra la direccion de eth0
         fprintf(stderr, "Error: no se encontr贸 la direcci贸n de eth0\n");
         exit(EXIT_FAILURE);
-    }
-    printf("s> init server %s: %s\n", ip_server, argv[2]);
+    }*/
+    printf("s> init server %s: %s\n", inet_ntoa(local_addr.sin_addr), argv[2]);
 
 
 	// Bucle principal para aceptar conexiones y manejarlas en hilos separados
@@ -269,7 +424,6 @@ int main(int argc, char *argv[])
 			printf("Error en accept\n");
 			return (-1);
 		}
-		printf("conexión aceptada de IP: %s   Puerto: %d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 		// Crear un hilo para manejar la solicitud del cliente
 		if (pthread_create(&thid, &t_attr, (void *)treat_request, (void *)&sc)== 0)
 		{
@@ -284,7 +438,12 @@ int main(int argc, char *argv[])
 	{ 
         perror("Error en el destroy mutex\n");
         close (sc);
-    };
+    }
+	if (pthread_mutex_destroy(&mutex_backend) != 0)
+	{ 
+        perror("Error en el destroy mutex\n");
+        close (sc);
+    }
     close(sd); 
 	return (0);
 }
