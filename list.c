@@ -5,9 +5,9 @@
 #include <unistd.h>
 #include <pthread.h>
 
-extern List messages;
-extern int inited_list = 0;
-extern pthread_mutex_t mutex;
+List messages;
+int inited_list = 0;
+pthread_mutex_t mutex;
 
 int init_list()
 {

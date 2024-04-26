@@ -9,9 +9,9 @@
 bool_t
 print_1_svc(char *username, char *operation, char *date, char *file, int *result,  struct svc_req *rqstp)
 {
-	bool_t retval;
+	bool_t retval = 0;
 	// Devuelve 1 si imprime fecha, 0 si no la imprime
-	if (file != NULL && *file != NULL)
+	if (file != NULL)
 	{
 		printf("%s %s %s %s\n", username, operation, date, file);
 		*result = 1;

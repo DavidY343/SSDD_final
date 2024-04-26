@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
-#include "claves.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
@@ -45,14 +44,19 @@ void treat_request(void *sc_request)
 	pthread_mutex_unlock(&mutex_mensaje);
 	enum clnt_stat retval_1;
 	int result_1;
-	char *print_1_username;
-	char *print_1_operation;
-	char *print_1_date;
-	char *print_1_file;
 	int error;
-	char *description;
-	char *port;
-
+    char *print_1_username = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
+    char *print_1_operation = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
+    char *print_1_date = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
+    char *print_1_file = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
+    char *description = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
+    char *port = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
+	char *username2 = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
+	if (!print_1_username || !print_1_operation || !print_1_date || !print_1_file || !description || !port || !username2)
+	{
+        perror("Error asignando memoria");
+        pthread_exit(0);
+    }
 
 	// Recepción de la operación solicitada desde el cliente
 	if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
@@ -87,7 +91,7 @@ void treat_request(void *sc_request)
 		
 		// LLamar al backend para meter en la lista, luego memset para vaciar
 		pthread_mutex_lock(&mutex_backend);
-		error = register_user(buffer)
+		error = register_user(buffer);
 		pthread_mutex_unlock(&mutex_backend);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 
@@ -95,7 +99,7 @@ void treat_request(void *sc_request)
 		if (create_client() == -1)
 		{
 			printf("Error initialiting rpc\n");
-			return (-1);
+			pthread_exit(0);
 		}
 		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
@@ -134,7 +138,7 @@ void treat_request(void *sc_request)
 
 		// LLamar al backend para meter en la lista, luego memset para vaciar
 		pthread_mutex_lock(&mutex_backend);
-		error = unregister_user(buffer)
+		error = unregister_user(buffer);
 		pthread_mutex_unlock(&mutex_backend);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 
@@ -142,7 +146,7 @@ void treat_request(void *sc_request)
 		if (create_client() == -1)
 		{
 			printf("Error initialiting rpc\n");
-			return (-1);
+			pthread_exit(0);
 		}
 		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
@@ -198,7 +202,7 @@ void treat_request(void *sc_request)
 		if (create_client() == -1)
 		{
 			printf("Error initialiting rpc\n");
-			return (-1);
+			pthread_exit(0);
 		}
 		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
@@ -263,7 +267,7 @@ void treat_request(void *sc_request)
 		if (create_client() == -1)
 		{
 			printf("Error initialiting rpc\n");
-			return (-1);
+			pthread_exit(0);
 		}
 		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, print_1_file, &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
@@ -319,7 +323,7 @@ void treat_request(void *sc_request)
 		if (create_client() == -1)
 		{
 			printf("Error initialiting rpc\n");
-			return (-1);
+			pthread_exit(0);
 		}
 		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, print_1_file, &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
@@ -366,7 +370,7 @@ void treat_request(void *sc_request)
 		if (create_client() == -1)
 		{
 			printf("Error initialiting rpc\n");
-			return (-1);
+			pthread_exit(0);
 		}
 		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
@@ -416,7 +420,7 @@ void treat_request(void *sc_request)
 		if (create_client() == -1)
 		{
 			printf("Error initialiting rpc\n");
-			return (-1);
+			pthread_exit(0);
 		}
 		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
@@ -481,7 +485,6 @@ void treat_request(void *sc_request)
 	else if (strcmp(buffer, "LIST_CONTENT") == 0)
 	{
 		t_response_list *respuesta_list = (t_response_list *) malloc(sizeof(t_response_list));
-		char *username2;
 		sprintf(print_1_operation,"%s", buffer);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 		// DATE
@@ -521,7 +524,7 @@ void treat_request(void *sc_request)
 		if (create_client() == -1)
 		{
 			printf("Error initialiting rpc\n");
-			return (-1);
+			pthread_exit(0);
 		}
 		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
@@ -541,7 +544,6 @@ void treat_request(void *sc_request)
 		// Asegúrate de asignar memoria para respuesta_list
 		t_response_list *respuesta_list = (t_response_list *) malloc(sizeof(t_response_list));
 		respuesta_list->next = NULL;
-		char *username2;
 		sprintf(print_1_operation,"%s", buffer);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 		// DATE
@@ -579,7 +581,7 @@ void treat_request(void *sc_request)
 		if (create_client() == -1)
 		{
 			printf("Error initialiting rpc\n");
-			return (-1);
+			pthread_exit(0);
 		}
 		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
@@ -641,6 +643,13 @@ void treat_request(void *sc_request)
 		printf("%s\n", buffer);
 	}
 	// Acabar 
+	free(print_1_username);
+    free(print_1_operation);
+    free(print_1_date);
+    free(print_1_file);
+    free(description);
+    free(port);
+	free(username2);
 	close(sc);
 	pthread_exit(0);
 }

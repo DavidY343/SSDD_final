@@ -101,7 +101,7 @@ typedef struct s_response_user
 	char 	username[MAX_VALUE_LENGTH];
 	char	ip[MAX_VALUE_LENGTH];
 	char	port[MAX_VALUE_LENGTH];
-	struct s_response *next;
+	struct s_response_user *next;
 } t_response_user;
 
 /**
