@@ -1,6 +1,7 @@
 from enum import Enum
 import argparse
 import sockets
+import threading
 
 class client :
 
@@ -19,49 +20,63 @@ class client :
     _port = -1
     _connected = False
     _user = None
+    _date = "xddd"
+    _archivos = []
+    _stop_flag = threading.Event()
 
     # ******************** METHODS *******************
-
-    def read_response(socketC):
+    @staticmethod
+    def read_response(socket):
         response = ''
         while True:
-            server_response = socketC.recv(1)
+            server_response = socket.recv(1)
             if (server_response == b'\0'):
                 break
             response += server_response.decode()
         return response
 
-    def connect_socket():
+    @staticmethod  
+    def connect_socket(port = None, server = None):
         try:
-            socketC = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_address = (self._server, self._port)
+            socketS = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            if port is None:
+                port = client._port
+            if server is None:
+                server = client._server
+            server_address = (server, port)
             print('connecting to {} port {}'.format(*server_address))
-            return socketC
+            return socketS
         except Exception as e:
             print('Error al crear el socket: ', e)
             return None
 
     # Método para hacer las comprobaciones de las cadenas que no pueden superar los 256 bytes.
     # Se comprueba 255 para tener en cuenta el \0
-    def excede_limite_255_bytes(cadena):
+    @staticmethod
+    def excede_tamano(cadena):
         encoded_cadena = cadena.encode('utf-8')
         # Comprobar si la longitud de la cadena codificada excede 255 bytes
         return len(encoded_cadena) > 255
 
     @staticmethod
-    def  register(user) :
-        socketC = connect_socket()
-        if socketC is None:
+    def register(user) :
+        socketS = client.connect_socket()
+        if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
+            print("REGISTER FAIL")
+            return client.RC.ERROR
+        if client.excede_tamano(user):
+            print("El nombre de usuario excede el tamaño máximo permitido")
             print("REGISTER FAIL")
             return client.RC.ERROR
         try:
             message = (
                 b'REGISTER\0' + 
+                client._date.encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0'
             )
-            socketC.sendall(message)
-            response = read_response(socketC)
+            socketS.sendall(message)
+            response = client.read_response(socketS)
 
             #Gestion del resultado
             if response == 0:
@@ -80,23 +95,24 @@ class client :
 
         finally:
             print('closing socket')
-            socketC.close()
+            socketS.close()
 
    
     @staticmethod
-    def  unregister(user) :
-        socketC = connect_socket()
-        if socketC is None:
+    def unregister(user) :
+        socketS = client.connect_socket()
+        if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("UNREGISTER FAIL")
             return client.RC.ERROR
         try:
             message = (
                 b'UNREGISTER\0' + 
+                client._date.encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0'
             )
-            socketC.sendall(message)
-            response = read_response(socketC)
+            socketS.sendall(message)
+            response = client.read_response(socketS)
 
             #Gestion del resultado
             if response == 0:
@@ -115,67 +131,118 @@ class client :
 
         finally:
             print('closing socket')
-            socketC.close()
-
+            socketS.close()
 
     @staticmethod
-    def  connect(user) :
-        socketC = connect_socket()
-        if socketC is None:
+    def listen_requests(server_socket):
+        server_socket.listen(5)
+
+        # Limpiar el evento
+        client._stop_flag.clear()
+
+        while not client._stop_flag.is_set():
+            # Aceptar una conexión entrante
+            client_socket, client_address = server_socket.accept()
+            try:
+                op = read_response(client_socket)
+                if op == "GET_FILE":
+                    file_name = read_response(client_socket)
+                    if file_name in client._archivos:
+                        desc = client._archivos[file_name]
+                        message = (
+                            b'0\0' +
+                            desc.encode('utf-8') + b'\0'
+                        )
+                    else:
+                        message = (
+                            b'1\0'
+                        )
+                else:
+                    message = (
+                        b'2\0'
+                    )
+            except Exception as e:
+                message = (
+                    b'2\0'
+                )
+            finally:
+                client_socket.sendall(message)
+                client_socket.close()
+
+    @staticmethod
+    def connect(user) :
+        socketS = client.connect_socket()
+        if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("CONNECT FAIL")
             return client.RC.OTHER_CASES
         try:
+            # Abrir el socket
+            server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server_address = ('', 0)
+            server_socket.bind(server_address)
+
+            # Creacion del hilo
+            server_thread = threading.Thread(target=client.listen_requests, args=(server_socket))
+            server_thread.start()
+            
+            # Aviso al servidor de que me conecto
             message = (
-                b'CONNECT\0' + 
+                b'CONNECT\0' +
+                client._date.encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0' + 
-                self._port.encode('utf-8') + b'\0'
+                port.encode('utf-8') + b'\0'
             )
-            socketC.sendall(message)
-            response = read_response(socketC)
+            socketS.sendall(message)
+            response = client.read_response(socketS)
 
             #Gestion del resultado
             if response == 0:
                 print("CONNECT OK")
-                self._connected = True
-                self._user = user
-                #Lanzar un hilo para que se convierta en server y taaal
+                client._connected = True
+                client._user = user
                 return client.RC.OK
             elif response == 1:
                 print("CONNECT FAIL, USER DOES NOT EXIST")
+                client._stop_flag.set()
                 return client.RC.ERROR
             elif response == 2:
                 print("USER ALREADY CONNECTED")
+                client._stop_flag.set()
                 return client.RC.USER_ERROR
             else:
                 print("CONNECT FAIL")
+                client._stop_flag.set()
                 return client.RC.OTHER_CASES
         except Exception as e:
             print('Error:', e)
             print("CONNECT FAIL")
+                client._stop_flag.set()
             return client.RC.OTHER_CASES
 
         finally:
             print('closing socket')
-            socketC.close()
+            socketS.close()
     
     @staticmethod
     def  disconnect(user) :
-        socketC = connect_socket()
-        if socketC is None:
+        socketS = client.connect_socket()
+        if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("DISCONNECT FAIL")
             return client.RC.OTHER_CASES
         try:
             message = (
                 b'DISCONNECT\0' + 
+                client._date.encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0'
             )
-            socketC.sendall(message)
-            response = read_response(socketC)
-            self._connected = False
-            self._user = None
-            #Parar ejecución del hilo
+            socketS.sendall(message)
+            response = client.read_response(socketS)
+            client._connected = False
+            client._user = None
+            # Activamos el evento para que el hilo pare
+            client._stop_flag.set()
             #Gestion del resultado
             if response == 0:
                 print("DISCONNECT OK")
@@ -196,26 +263,32 @@ class client :
 
         finally:
             print('closing socket')
-            socketC.close()
+            socketS.close()
 
     @staticmethod
     def  publish(fileName,  description) :
-        socketC = connect_socket()
-        if socketC is None:
-            print("PUBLISH FAIL")
+        socketS = client.connect_socket()
+        if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
+            print("PUBLISH FAIL")
+            return client.RC.ANTOHER_CASES
+        if client.excede_tamano(fileName):
+            print("El nombre del archivo excede el tamaño máximo permitido")
+            print("PUBLISH FAIL")
             return client.RC.ANTOHER_CASES
         try:
             message = (
                 b'PUBLISH\0' + 
-                self._user.encode('utf-8') + b'\0' + 
+                client._date.encode('utf-8') + b'\0' +
+                client._user.encode('utf-8') + b'\0' + 
                 fileName.replace(" ", "").encode('utf-8') + b'\0' + 
                 description.encode('utf-8') + b'\0'
             )
-            socketC.sendall(message)
-            response = read_response(socketC)
+            socketS.sendall(message)
+            response = client.read_response(socketS)
             if response == 0:
                 print("PUBLISH OK")
+                client._archivos[fileName] = description
                 return client.RC.OK
             elif response == 1:
                 print("PUBLISH FAIL, USER DOES NOT EXIST")
@@ -236,25 +309,32 @@ class client :
 
         finally:
             print('closing socket')
-            socketC.close()
+            socketS.close()
 
     @staticmethod
     def  delete(fileName) :
-        socketC = connect_socket()
-        if socketC is None:
+        socketS = client.connect_socket()
+        if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
+            print("DELETE FAIL")
+            return client.RC.ANTOHER_CASES
+        if client.excede_tamano(fileName):
+            print("El nombre del fichero excede el tamaño máximo permitido")
             print("DELETE FAIL")
             return client.RC.ANTOHER_CASES
         try:
             message = (
                 b'DELETE\0' + 
-                self._user.encode('utf-8') + b'\0' + 
+                client._date.encode('utf-8') + b'\0' +
+                client._user.encode('utf-8') + b'\0' + 
                 fileName.replace(" ", "").encode('utf-8') + b'\0'
             )
-            socketC.sendall(message)
-            response = read_response(socketC)
+            socketS.sendall(message)
+            response = client.read_response(socketS)
             if response == 0:
                 print("DELETE OK")
+                if nombre in client._archivos_:
+                    del client._archivos[nombre]
                 return client.RC.OK
             elif response == 1:
                 print("DELETE FAIL, USER DOES NOT EXIST")
@@ -276,27 +356,34 @@ class client :
 
         finally:
             print('closing socket')
-            socketC.close()
+            socketS.close()
 
     @staticmethod
     def  listusers() :
-        socketC = connect_socket()
-        if socketC is None:
+        socketS = client.connect_socket()
+        if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("LIST_USERS FAIL")
             return client.RC.OTHER_CASES
         try:
             message = (
                 b'LIST_USERS\0' + 
-                self._user.encode('utf-8') + b'\0'
+                client._date.encode('utf-8') + b'\0' +
+                client._user.encode('utf-8') + b'\0'
             )
-            socketC.sendall(message)
-            response = read_response(socketC)
-            self._connected = False
-            self._user = None
+            socketS.sendall(message)
+            response = client.read_response(socketS)
             #Gestion del resultado
             if response == 0:
-                # Recibir un segundo mensaje con toda la lista de usuarios
+                # Recibir toda la lista de usuarios
+                number_of_users = client.read_response(socketS)
+                for i in range(number_of_users):
+                    users_info = client.read_response(socketS)
+                    print("\t" + users_info + "\t", end=" ")
+                    users_info = client.read_response(socketS)
+                    print(users_info + "\t", end=" ")
+                    users_info = client.read_response(socketS)
+                    print(users_info + "\n")
                 print("LIST_USERS OK")
                 return client.RC.OK
             elif response == 1:
@@ -315,17 +402,132 @@ class client :
 
         finally:
             print('closing socket')
-            socketC.close()
+            socketS.close()
 
     @staticmethod
     def  listcontent(user) :
-        #  Write your code here
-        return client.RC.ERROR
+        socketS = client.connect_socket()
+        if socketS is None:
+            print("Error al crear el socket. No se pudo establecer la conexión.")
+            print("LIST_CONTENT FAIL")
+            return client.RC.ANOTHER_CASES
+        try:
+            message = (
+                b'LIST_CONTENT\0' + 
+                client._date.encode('utf-8') + b'\0' +
+                client._user.encode('utf-8') + b'\0' +
+                user.encode('utf-8') + b'\0'
+            )
+            socketS.sendall(message)
+            response = client.read_response(socketS)
+            #Gestion del resultado
+            if response == 0:
+                # Recibir el contenido del usuario
+                number_of_files = client.read_response(socketS)
+                for i in range(number_of_files):
+                    file_info = client.read_response(socketS)
+                    print("\t" + file_info + "\t", end=" ")
+                    file_info = client.read_response(socketS)
+                    print(file_info)
+                print("LIST_CONTENT OK")
+                return client.RC.OK
+            elif response == 1:
+                print("LIST_CONTENT FAIL, USER DOES NOT EXIST")
+                return client.RC.ERROR
+            elif response == 2:
+                print("LIST_CONTENT FAIL, USER NOT CONNECTED")
+                return client.RC.USER_ERROR
+            elif response == 3:
+                print("LIST_CONTENT FAIL, REMOTE USER DOES NOT EXIST")
+                return client.RC.OTHER_CASES
+            else:
+                print("LIST_CONTENT FAIL")
+                return client.RC.ANOTHER_CASES
+        except Exception as e:
+            print('Error:', e)
+            print("LIST_CONTENT FAIL")
+            return client.RC.ANOTHER_CASES
+
+        finally:
+            print('closing socket')
+            socketS.close()
+
+    # Metodo que solo sirve para procesar la respuesta del servidor cuando pides usuario
+    @staticmethod
+    def get_data_by_user(socket, user):
+        number_of_users = client.read_response(socket)
+        for i in range(number_of_users):
+            username = client.read_response(socket)
+            ip = client.read_response(socket)
+            port = client.read_response(socket)
+
+            if username == user:
+                # Se encontró el usuario, guardando la información de servidor y puerto
+                server = ip
+                port = int(port)  # Asegurándonos de que el puerto sea un entero
+                return server, port
+
+        # Si el usuario no se encuentra, devolver 2
+        return 2
 
     @staticmethod
     def  getfile(user,  remote_FileName,  local_FileName) :
-        #  Write your code here
-        return client.RC.ERROR
+        socketS = client.connect_socket()
+        if socketS is None:
+            print("Error al crear el socket. No se pudo establecer la conexión.")
+            print("GET_FILE FAIL")
+            return client.RC.USER_ERROR
+        try:
+            # Pedir ip y puerto al servidor a partir del nombre de usuario
+            message = (
+                b'GET_FILE\0' +
+                client.remote_FileName.encode('utf-8') + b'\0'
+            )
+            socketS.sendall(message)
+            response = client.read_response(socketS)
+            # Procesar la respuesta del servidor
+            if response == 0:
+                data = client.get_data_by_user(socketS, user)
+                if data ==2:
+                    print("GET_FILE FAIL")
+                    return client.RC.USER_ERROR
+                else:
+                    server, port = data
+            else:
+                print("GET_FILE FAIL")
+                return client.RC.USER_ERROR
+            # Ya tenemos la info que necesitamos y podemos pedirsela al otro cliente
+            socketC = client.connect_socket(port, server)
+            if socketC is None:
+                print("Error al crear el socket. No se pudo establecer la conexión.")
+                print("GET_FILE FAIL")
+                return client.RC.USER_ERROR
+            messageC = (
+                b'GET_FILE\0' +
+                remote_FileName.encode('utf-8') + b'\0'
+            )
+            socketC.sendall(messageC)
+            responseC = client.read_response(socketC)
+            if response == 0:
+                print("GET_FILE OK")
+                file_desc = client.read_response(socketC)
+                client._archivos[local_FileName] = file_desc
+                return client.RC.OK
+            elif response == 1:
+                print("GET_FILE FAIL / FILES NOT EXIST")
+                return client.RC.ERROR
+            else:
+                print("GET_FILE FAIL")
+                return client.RC.USER_ERROR
+        except Exception as e:
+            # El print del error quizás se puede quitar
+            print('Error:', e)
+            print("GET_FILE FAIL")
+            return client.RC.USER_ERROR
+
+        finally:
+            print('closing socket')
+            socketS.close()
 
     # *
     # **
@@ -399,7 +601,8 @@ class client :
 
                     elif(line[0]=="QUIT") :
                         if (len(line) == 1) :
-                            #Parar ejecución del hilo
+                            # Activamos el evento para que el hilo pare
+                            client._stop_flag.set()
                             break
                         else :
                             print("Syntax error. Use: QUIT")
@@ -429,8 +632,8 @@ class client :
             return False
 
         if ((args.p < 1024) or (args.p > 65535)):
-            parser.error("Error: Port must be in the range 1024 <= port <= 65535");
-            return False;
+            parser.error("Error: Port must be in the range 1024 <= port <= 65535")
+            return False
         
         _server = args.s
         _port = args.p
