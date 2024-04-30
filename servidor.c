@@ -57,6 +57,7 @@ void treat_request(void *sc_request)
 	enum clnt_stat retval_1;
 	int result_1;
 	int error;
+	char *error_str = (char *)malloc(2 * sizeof(char));
     char *print_1_username = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
     char *print_1_operation = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
     char *print_1_date = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
@@ -64,7 +65,7 @@ void treat_request(void *sc_request)
     char *description = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
     char *port = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
 	char *username2 = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
-	if (!print_1_username || !print_1_operation || !print_1_date || !print_1_file || !description || !port || !username2)
+	if (!print_1_username || !print_1_operation || !print_1_date || !print_1_file || !description || !port || !username2 || !error)
 	{
         perror("Error asignando memoria");
         pthread_exit(0);
@@ -121,8 +122,8 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error = htonl(error);
-		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		snprintf(error_str, sizeof(error_str), "%d", error);
+		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -168,8 +169,8 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error = htonl(error);
-		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		snprintf(error_str, sizeof(error_str), "%d", error);
+		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -224,8 +225,8 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error = htonl(error);
-		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		snprintf(error_str, sizeof(error_str), "%d", error);
+		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -289,8 +290,8 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error = htonl(error);
-		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		snprintf(error_str, sizeof(error_str), "%d", error);
+		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -345,8 +346,8 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error = htonl(error);
-		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		snprintf(error_str, sizeof(error_str), "%d", error);
+		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -392,8 +393,8 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error = htonl(error);
-		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		snprintf(error_str, sizeof(error_str), "%d", error);
+		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -442,8 +443,8 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error = htonl(error);
-		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		snprintf(error_str, sizeof(error_str), "%d", error);
+		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -546,8 +547,8 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error = htonl(error);
-		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		snprintf(error_str, sizeof(error_str), "%d", error);
+		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -603,8 +604,8 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error = htonl(error);
-		if (sendMessage(sc, (char *) &error, sizeof(int)) < 0)
+		snprintf(error_str, sizeof(error_str), "%d", error);
+		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
