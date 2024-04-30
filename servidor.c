@@ -663,7 +663,7 @@ int main(int argc, char *argv[])
 	int sc;
 	int val = 1;
 
-	if (argc != 4)
+	if (argc != 3)
 	{
 		printf("No tengo claro el numero de argumenos\n");
 		return (-1);
@@ -684,7 +684,7 @@ int main(int argc, char *argv[])
 	bzero((char *)&server_addr, sizeof(server_addr));//ponemos a cero server_addr
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_addr.s_addr = INADDR_ANY;
-	server_addr.sin_port = htons(atoi(argv[1]));
+	server_addr.sin_port = htons(atoi(argv[2]));
 
 	//enlaza el socket con la dirección IP y el número del puerto del servidor
 	if (bind(sd, (const struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {

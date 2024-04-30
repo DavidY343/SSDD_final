@@ -1,6 +1,6 @@
 from enum import Enum
 import argparse
-import sockets
+import socket
 import threading
 
 class client :
@@ -13,7 +13,7 @@ class client :
         ERROR = 1
         USER_ERROR = 2
         OTHER_CASES = 3
-        ANTOHER_CASES = 4
+        ANOTHER_CASES = 4
 
     # ****************** ATTRIBUTES ******************
     _server = None
@@ -64,11 +64,11 @@ class client :
         if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("REGISTER FAIL")
-            return client.RC.ERROR
+            return client.RC.USER_ERROR
         if client.excede_tamano(user):
             print("El nombre de usuario excede el tamaño máximo permitido")
             print("REGISTER FAIL")
-            return client.RC.ERROR
+            return client.RC.USER_ERROR
         try:
             message = (
                 b'REGISTER\0' + 
@@ -217,7 +217,7 @@ class client :
         except Exception as e:
             print('Error:', e)
             print("CONNECT FAIL")
-                client._stop_flag.set()
+            client._stop_flag.set()
             return client.RC.OTHER_CASES
 
         finally:
@@ -241,6 +241,7 @@ class client :
             response = client.read_response(socketS)
             client._connected = False
             client._user = None
+            client._archivos = []
             # Activamos el evento para que el hilo pare
             client._stop_flag.set()
             #Gestion del resultado
@@ -271,11 +272,11 @@ class client :
         if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("PUBLISH FAIL")
-            return client.RC.ANTOHER_CASES
+            return client.RC.ANOTHER_CASES
         if client.excede_tamano(fileName):
             print("El nombre del archivo excede el tamaño máximo permitido")
             print("PUBLISH FAIL")
-            return client.RC.ANTOHER_CASES
+            return client.RC.ANOTHER_CASES
         try:
             message = (
                 b'PUBLISH\0' + 
@@ -301,11 +302,11 @@ class client :
                 return client.RC.OTHER_CASES
             else:
                 print("PUBLISH FAIL")
-                return client.RC.ANTOHER_CASES
+                return client.RC.ANOTHER_CASES
         except Exception as e:
             print("PUBLISH FAIL")
             print('Error:', e)
-            return client.RC.ANTOHER_CASES
+            return client.RC.ANOTHER_CASES
 
         finally:
             print('closing socket')
@@ -317,11 +318,11 @@ class client :
         if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("DELETE FAIL")
-            return client.RC.ANTOHER_CASES
+            return client.RC.ANOTHER_CASES
         if client.excede_tamano(fileName):
             print("El nombre del fichero excede el tamaño máximo permitido")
             print("DELETE FAIL")
-            return client.RC.ANTOHER_CASES
+            return client.RC.ANOTHER_CASES
         try:
             message = (
                 b'DELETE\0' + 
@@ -347,12 +348,12 @@ class client :
                 return client.RC.OTHER_CASES
             else:
                 print("DELETE FAIL")
-                return client.RC.ANTOHER_CASES
+                return client.RC.ANOTHER_CASES
         except Exception as e:
             # El print del error quizás se puede quitar
             print('Error:', e)
             print("DELETE FAIL")
-            return client.RC.ANTOHER_CASES
+            return client.RC.ANOTHER_CASES
 
         finally:
             print('closing socket')
@@ -635,8 +636,8 @@ class client :
             parser.error("Error: Port must be in the range 1024 <= port <= 65535")
             return False
         
-        _server = args.s
-        _port = args.p
+        client._server = args.s
+        client._port = args.p
 
         return True
 
