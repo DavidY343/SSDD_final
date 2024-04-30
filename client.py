@@ -182,6 +182,7 @@ class client :
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_address = ('', 0)
             server_socket.bind(server_address)
+            _, port = server_socket.getsockname()
 
             # Creacion del hilo
             server_thread = threading.Thread(target=client.listen_requests, args=(server_socket))
@@ -192,7 +193,7 @@ class client :
                 b'CONNECT\0' +
                 client._date.encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0' + 
-                port.encode('utf-8') + b'\0'
+                str(port).encode('utf-8') + b'\0'
             )
             socketS.sendall(message)
             response = client.read_response(socketS)
