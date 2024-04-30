@@ -20,7 +20,7 @@ class client :
     _port = -1
     _connected = False
     _user = None
-    _date = "xddd"
+    _date = 'xddd'
     _archivos = []
     _stop_flag = threading.Event()
 
@@ -45,6 +45,7 @@ class client :
                 server = client._server
             server_address = (server, port)
             print('connecting to {} port {}'.format(*server_address))
+            socketS.connect(server_address)
             return socketS
         except Exception as e:
             print('Error al crear el socket: ', e)

@@ -6,6 +6,17 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
+#include <ifaddrs.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <net/if.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <ifaddrs.h>
 #include "lines.h"
 #include "mensaje.h"
 #include "list.h"
@@ -23,7 +34,7 @@ static int create_client()
 {
 	char	*host;
 
-	host = getenv("IP_TUPLAS");
+	host = "localhost";
 	
 	clnt = clnt_create (host, LIST_SERVICE, LIST_SERVICE_V1, "udp");
 	if (clnt == NULL)
@@ -691,6 +702,7 @@ int main(int argc, char *argv[])
 		printf("Error en Bind\n");
 		return (-1);
 	}
+	/*
 	// Obtener información del servidor después de bind para conocer la dirección y el puerto
     struct sockaddr_in local_addr;
     socklen_t local_size = sizeof(local_addr);
@@ -700,7 +712,7 @@ int main(int argc, char *argv[])
                ntohs(local_addr.sin_port));
     } else {
         printf("Error al obtener la IP local\n");
-    }
+    }*/
 	//el servidor se quede esperando una conexión entrante
 	if (listen(sd, SOMAXCONN) < 0) {
 		printf("Error en Listen\n");
@@ -729,7 +741,30 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Error: no se encontr贸 la direcci贸n de eth0\n");
         exit(EXIT_FAILURE);
     }*/
-    printf("s> init server %s: %s\n", inet_ntoa(local_addr.sin_addr), argv[2]);
+	    struct ifaddrs *ifaddr, *ifa;
+    int family;
+    char host[NI_MAXHOST];
+
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("Error al obtener las interfaces");
+        exit(EXIT_FAILURE);
+    }
+
+
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == NULL) continue;
+
+        family = ifa->ifa_addr->sa_family;
+
+        if (family == AF_INET) { // Direcciones IPv4
+            if (getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) == 0) {
+                printf("%s: %s\n", ifa->ifa_name, host); // Nombre de la interfaz y dirección IP
+            }
+        }
+    }
+
+    freeifaddrs(ifaddr);
+    //printf("s> init server %s: %s\n", inet_ntoa(local_addr.sin_addr), argv[2]);
 
 
 	// Bucle principal para aceptar conexiones y manejarlas en hilos separados
