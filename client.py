@@ -518,12 +518,12 @@ class client :
             )
             socketC.sendall(messageC)
             responseC = client.read_response(socketC)
-            if response == 0:
+            if responseC == 0:
                 print("GET_FILE OK")
                 file_desc = client.read_response(socketC)
                 client._archivos[local_FileName] = file_desc
                 return client.RC.OK
-            elif response == 1:
+            elif responseC == 1:
                 print("GET_FILE FAIL / FILES NOT EXIST")
                 return client.RC.ERROR
             else:
