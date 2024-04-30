@@ -29,12 +29,13 @@ pthread_cond_t cond_mensaje;
 int not_finished = true;
 char buffer[MAX_VALUE_LENGTH];
 pthread_mutex_t mutex_backend;
+char *ip_rpc;
 
 static int create_client()
 {
 	char	*host;
 
-	host = "localhost";
+	host = ip_rpc;
 	
 	clnt = clnt_create (host, LIST_SERVICE, LIST_SERVICE_V1, "udp");
 	if (clnt == NULL)
@@ -105,15 +106,16 @@ void treat_request(void *sc_request)
 		error = register_user(buffer);
 		pthread_mutex_unlock(&mutex_backend);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
-
 		// LLamar al rpc
 		if (create_client() == -1)
 		{
 			printf("Error initialiting rpc\n");
 			pthread_exit(0);
 		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
-		if (retval_1 != RPC_SUCCESS) {
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
+		if (retval_1 != RPC_SUCCESS)
+		{
+			printf("retval: %d rpc_succes: %d\n", retval_1, RPC_SUCCESS);
 			clnt_perror (clnt, "call failed");
 		}
 		clnt_destroy (clnt);
@@ -698,79 +700,57 @@ int main(int argc, char *argv[])
 	server_addr.sin_port = htons(atoi(argv[2]));
 
 	//enlaza el socket con la dirección IP y el número del puerto del servidor
-	if (bind(sd, (const struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+	if (bind(sd, (const struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+	{
 		printf("Error en Bind\n");
 		return (-1);
 	}
-	/*
-	// Obtener información del servidor después de bind para conocer la dirección y el puerto
-    struct sockaddr_in local_addr;
-    socklen_t local_size = sizeof(local_addr);
-	if (getsockname(sd, (struct sockaddr *)&local_addr, &local_size) == 0) {
-        printf("Servidor IP local: %s, Puerto: %d\n",
-               inet_ntoa(local_addr.sin_addr),
-               ntohs(local_addr.sin_port));
-    } else {
-        printf("Error al obtener la IP local\n");
-    }*/
+
 	//el servidor se quede esperando una conexión entrante
-	if (listen(sd, SOMAXCONN) < 0) {
+	if (listen(sd, SOMAXCONN) < 0)
+	{
 		printf("Error en Listen\n");
 		return (-1);
 	}
 
 	size = sizeof(client_addr);
-	/*
-	// FInd local ip
-	struct ifaddrs *ifaddr, *ifa;
-    if (getifaddrs(&ifaddr) == -1) {// obtener las direcciones de red de todas las interfaces
-        perror("getifaddrs");
-        exit(EXIT_FAILURE);
-    }
-	char *ip_server = NULL;
-    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-        if (strcmp(ifa->ifa_name, "eth0") == 0 && ifa->ifa_addr->sa_family == AF_INET) {
-            struct sockaddr_in *sa = (struct sockaddr_in *) ifa->ifa_addr;
-            ip_server = inet_ntoa(sa->sin_addr);
-            break;
-        }
-    }
 
-    freeifaddrs(ifaddr); // liberar la memoria asignada a la lista de direcciones
-    if (ip_server == NULL) { // si no se encuentra la direccion de eth0
-        fprintf(stderr, "Error: no se encontr贸 la direcci贸n de eth0\n");
-        exit(EXIT_FAILURE);
-    }*/
-	    struct ifaddrs *ifaddr, *ifa;
+	//Find local IP
+	struct ifaddrs *ifaddr, *ifa;
     int family;
     char host[NI_MAXHOST];
 
-    if (getifaddrs(&ifaddr) == -1) {
+    if (getifaddrs(&ifaddr) == -1) 
+	{
         perror("Error al obtener las interfaces");
         exit(EXIT_FAILURE);
     }
 
 
-    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) 
+	{
         if (ifa->ifa_addr == NULL) continue;
 
         family = ifa->ifa_addr->sa_family;
 
         if (family == AF_INET) { // Direcciones IPv4
-            if (getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) == 0) {
-                printf("%s: %s\n", ifa->ifa_name, host); // Nombre de la interfaz y dirección IP
-            }
+            if (getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) == 0)
+			{
+				if (strcmp(ifa->ifa_name, "eth0") == 0) 
+				{
+					ip_rpc = host;
+					printf("s> init server %s:%s\n", host, argv[2]);
+					break;
+				}
+			}
+
         }
     }
-
     freeifaddrs(ifaddr);
-    //printf("s> init server %s: %s\n", inet_ntoa(local_addr.sin_addr), argv[2]);
-
 
 	// Bucle principal para aceptar conexiones y manejarlas en hilos separados
 	while(1)
 	{
-		printf("s>\n");
 		// Aceptar la conexión entrante
 		sc = accept(sd, (struct sockaddr *)&client_addr, (socklen_t *)&size);
 		if (sc == -1) {
