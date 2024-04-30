@@ -2,6 +2,7 @@ from enum import Enum
 import argparse
 import socket
 import threading
+import zeep
 
 class client :
 
@@ -20,11 +21,17 @@ class client :
     _port = -1
     _connected = False
     _user = None
-    _date = 'xddd'
     _archivos = []
     _stop_flag = threading.Event()
 
     # ******************** METHODS *******************
+
+    @staticmethod
+    def get_time():
+        wsdl_url = "http://localhost:8000/?wsdl"
+        soap = zeep.Client(wsdl=wsdl_url) 
+        return soap.service.get_time()
+
     @staticmethod
     def read_response(socket):
         response = ''
@@ -73,7 +80,7 @@ class client :
         try:
             message = (
                 b'REGISTER\0' + 
-                client._date.encode('utf-8') + b'\0' +
+                client.get_time().encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0'
             )
             socketS.sendall(message)
@@ -109,7 +116,7 @@ class client :
         try:
             message = (
                 b'UNREGISTER\0' + 
-                client._date.encode('utf-8') + b'\0' +
+                client._get_time().encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0'
             )
             socketS.sendall(message)
@@ -143,8 +150,8 @@ class client :
 
         while not client._stop_flag.is_set():
             # Aceptar una conexión entrante
-            client_socket, client_address = server_socket.accept()
             try:
+                client_socket, client_address = server_socket.accept()
                 op = read_response(client_socket)
                 if op == "GET_FILE":
                     file_name = read_response(client_socket)
@@ -191,7 +198,7 @@ class client :
             # Aviso al servidor de que me conecto
             message = (
                 b'CONNECT\0' +
-                client._date.encode('utf-8') + b'\0' +
+                client._get_time().encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0' + 
                 str(port).encode('utf-8') + b'\0'
             )
@@ -236,7 +243,7 @@ class client :
         try:
             message = (
                 b'DISCONNECT\0' + 
-                client._date.encode('utf-8') + b'\0' +
+                client._get_time().encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0'
             )
             socketS.sendall(message)
@@ -282,7 +289,7 @@ class client :
         try:
             message = (
                 b'PUBLISH\0' + 
-                client._date.encode('utf-8') + b'\0' +
+                client._get_time().encode('utf-8') + b'\0' +
                 client._user.encode('utf-8') + b'\0' + 
                 fileName.replace(" ", "").encode('utf-8') + b'\0' + 
                 description.encode('utf-8') + b'\0'
@@ -328,7 +335,7 @@ class client :
         try:
             message = (
                 b'DELETE\0' + 
-                client._date.encode('utf-8') + b'\0' +
+                client._get_time().encode('utf-8') + b'\0' +
                 client._user.encode('utf-8') + b'\0' + 
                 fileName.replace(" ", "").encode('utf-8') + b'\0'
             )
@@ -371,7 +378,7 @@ class client :
         try:
             message = (
                 b'LIST_USERS\0' + 
-                client._date.encode('utf-8') + b'\0' +
+                client._get_time().encode('utf-8') + b'\0' +
                 client._user.encode('utf-8') + b'\0'
             )
             socketS.sendall(message)
@@ -417,7 +424,7 @@ class client :
         try:
             message = (
                 b'LIST_CONTENT\0' + 
-                client._date.encode('utf-8') + b'\0' +
+                client._get_time().encode('utf-8') + b'\0' +
                 client._user.encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0'
             )
@@ -606,6 +613,7 @@ class client :
                         if (len(line) == 1) :
                             # Activamos el evento para que el hilo pare
                             client._stop_flag.set()
+                            #hacer shutdown del socket qyue esta en escuha, se cierra con una excepcion tratandola clientsocket.shutdown y un try except dentro del hilo
                             break
                         else :
                             print("Syntax error. Use: QUIT")
