@@ -57,7 +57,7 @@ void treat_request(void *sc_request)
 	enum clnt_stat retval_1;
 	int result_1;
 	int error;
-	char *error_str = (char *)malloc(2 * sizeof(char));
+	char error_str[2];
     char *print_1_username = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
     char *print_1_operation = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
     char *print_1_date = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
@@ -65,7 +65,7 @@ void treat_request(void *sc_request)
     char *description = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
     char *port = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
 	char *username2 = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
-	if (!print_1_username || !print_1_operation || !print_1_date || !print_1_file || !description || !port || !username2 || !error)
+	if (!print_1_username || !print_1_operation || !print_1_date || !print_1_file || !description || !port || !username2)
 	{
         perror("Error asignando memoria");
         pthread_exit(0);
@@ -122,8 +122,8 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
+		snprintf(error_str, 2, "%d", error);
+		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -170,7 +170,7 @@ void treat_request(void *sc_request)
 
 		// Enviar el código de error de vuelta al cliente en formato red
 		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
+		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -226,7 +226,7 @@ void treat_request(void *sc_request)
 
 		// Enviar el código de error de vuelta al cliente en formato red
 		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
+		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -291,7 +291,7 @@ void treat_request(void *sc_request)
 
 		// Enviar el código de error de vuelta al cliente en formato red
 		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
+		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -346,8 +346,7 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
+		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -394,7 +393,7 @@ void treat_request(void *sc_request)
 
 		// Enviar el código de error de vuelta al cliente en formato red
 		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
+		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -404,6 +403,7 @@ void treat_request(void *sc_request)
 		t_response_user *respuesta_user = (t_response_user *) malloc(sizeof(t_response_user));
 		respuesta_user->next = NULL;
 		int n_user;
+		char *n_user_str;
 		sprintf(print_1_operation,"%s", buffer);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 		// DATE
@@ -444,19 +444,21 @@ void treat_request(void *sc_request)
 
 		// Enviar el código de error de vuelta al cliente en formato red
 		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
+		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
-
+		int num_digits = snprintf(NULL, 0, "%d", n_user) + 1;
+		n_user_str = (char *)malloc(sizeof(char) * (num_digits + 1));
 		// Enviar el número de usuarios conectados al cliente
-		int n_users_network = htonl(n_user);
-		if (sendMessage(sc, (char *) &n_users_network, sizeof(int)) < 0)
+		snprintf(error_str, sizeof(n_user_str), "%d", n_user);
+		if (sendMessage(sc, (char *) &n_user_str, sizeof(n_user_str)) < 0)
 		{
 			perror("Error enviando el número de usuarios");
 			close(sc);
 			pthread_exit(0);
 		}
+		free(n_user_str);
 
 		// Enviar la información de cada usuario
 		t_response_user *current = respuesta_user;
@@ -494,63 +496,6 @@ void treat_request(void *sc_request)
 			temp = current;
 			current = current->next;
 			free(temp);
-		}
-	}
-	else if (strcmp(buffer, "LIST_CONTENT") == 0)
-	{
-		t_response_list *respuesta_list = (t_response_list *) malloc(sizeof(t_response_list));
-		sprintf(print_1_operation,"%s", buffer);
-		memset(buffer, 0, MAX_VALUE_LENGTH);
-		// DATE
-		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
-		{
-			perror("Error2\n");
-			close(sc);
-			pthread_exit(0);
-		}
-		sprintf(print_1_date,"%s", buffer);
-		memset(buffer, 0, MAX_VALUE_LENGTH);
-		// USERNAME
-		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
-		{
-			perror("Error3\n");
-			close(sc);
-			pthread_exit(0);
-		}
-		sprintf(print_1_username,"%s", buffer);
-		memset(buffer, 0, MAX_VALUE_LENGTH);
-		// USERNAME2
-		if(readLine(sc, buffer, MAX_VALUE_LENGTH) < 0)
-		{
-			perror("Error3\n");
-			close(sc);
-			pthread_exit(0);
-		}
-		sprintf(username2,"%s", buffer);
-
-		// LLamar al backend para meter en la lista, luego memset para vaciar
-		pthread_mutex_lock(&mutex_backend);
-		error = list_content(print_1_username, respuesta_list, username2);
-		pthread_mutex_unlock(&mutex_backend);
-		memset(buffer, 0, MAX_VALUE_LENGTH);
-
-		// LLamar al rpc
-		if (create_client() == -1)
-		{
-			printf("Error initialiting rpc\n");
-			pthread_exit(0);
-		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
-		if (retval_1 != RPC_SUCCESS) {
-			clnt_perror (clnt, "call failed");
-		}
-		clnt_destroy (clnt);
-
-		// Enviar el código de error de vuelta al cliente en formato red
-		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
-		{
-			printf("Error enviando al socket\n");
 		}
 	}
 	else if (strcmp(buffer, "LIST_CONTENT") == 0)
@@ -605,26 +550,30 @@ void treat_request(void *sc_request)
 
 		// Enviar el código de error de vuelta al cliente en formato red
 		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, (error_str, strlen(error_str) + 1)) < 0)
+		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
 
 		// Ahora que tienes el listado, envía el número total de archivos al cliente
 		int file_count = 0;
+		char *file_count_str;
 		t_response_list *current = respuesta_list;
 		while (current != NULL) {
 			file_count++;
 			current = current->next;
 		}
-
-		int network_file_count = htonl(file_count);
-		if (sendMessage(sc, (char *) &network_file_count, sizeof(int)) < 0) {
-			perror("Error enviando el conteo de archivos");
-			free(respuesta_list);
+		int num_digits = snprintf(NULL, 0, "%d", file_count) + 1;
+		file_count_str = (char *)malloc(sizeof(char) * (num_digits + 1));	
+		// Enviar el número de usuarios conectados al cliente
+		snprintf(file_count_str, (num_digits + 1), "%d", file_count);
+		if (sendMessage(sc, (char *) &file_count_str, sizeof(file_count_str)) < 0)
+		{
+			perror("Error enviando el número de usuarios");
 			close(sc);
 			pthread_exit(0);
 		}
+		free(file_count_str);
 
 		// Luego envía la información de cada archivo
 		current = respuesta_list;
@@ -645,7 +594,8 @@ void treat_request(void *sc_request)
 		// Limpia la memoria al final
 		t_response_list *temp;
 		current = respuesta_list;
-		while (current != NULL) {
+		while (current != NULL)
+		{
 			temp = current;
 			current = current->next;
 			free(temp);
