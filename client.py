@@ -85,12 +85,12 @@ class client :
             )
             socketS.sendall(message)
             response = client.read_response(socketS)
-
+            print (response)
             #Gestion del resultado
-            if response == 0:
+            if response == '0':
                 print("REGISTER OK")
                 return client.RC.OK
-            elif response == 1:
+            elif response == '1':
                 print("USERNAME IN USE")
                 return client.RC.ERROR
             else:
@@ -116,17 +116,16 @@ class client :
         try:
             message = (
                 b'UNREGISTER\0' + 
-                client._get_time().encode('utf-8') + b'\0' +
+                client.get_time().encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0'
             )
             socketS.sendall(message)
             response = client.read_response(socketS)
-
             #Gestion del resultado
-            if response == 0:
+            if response == '0':
                 print("UNREGISTER OK")
                 return client.RC.OK
-            elif response == 1:
+            elif response == '1':
                 print("USER DOES NOT EXIST")
                 return client.RC.ERROR
             else:
@@ -198,7 +197,7 @@ class client :
             # Aviso al servidor de que me conecto
             message = (
                 b'CONNECT\0' +
-                client._get_time().encode('utf-8') + b'\0' +
+                client.get_time().encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0' + 
                 str(port).encode('utf-8') + b'\0'
             )
@@ -243,7 +242,7 @@ class client :
         try:
             message = (
                 b'DISCONNECT\0' + 
-                client._get_time().encode('utf-8') + b'\0' +
+                client.get_time().encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0'
             )
             socketS.sendall(message)
@@ -289,7 +288,7 @@ class client :
         try:
             message = (
                 b'PUBLISH\0' + 
-                client._get_time().encode('utf-8') + b'\0' +
+                client.get_time().encode('utf-8') + b'\0' +
                 client._user.encode('utf-8') + b'\0' + 
                 fileName.replace(" ", "").encode('utf-8') + b'\0' + 
                 description.encode('utf-8') + b'\0'
@@ -335,7 +334,7 @@ class client :
         try:
             message = (
                 b'DELETE\0' + 
-                client._get_time().encode('utf-8') + b'\0' +
+                client.get_time().encode('utf-8') + b'\0' +
                 client._user.encode('utf-8') + b'\0' + 
                 fileName.replace(" ", "").encode('utf-8') + b'\0'
             )
@@ -378,7 +377,7 @@ class client :
         try:
             message = (
                 b'LIST_USERS\0' + 
-                client._get_time().encode('utf-8') + b'\0' +
+                client.get_time().encode('utf-8') + b'\0' +
                 client._user.encode('utf-8') + b'\0'
             )
             socketS.sendall(message)
@@ -424,7 +423,7 @@ class client :
         try:
             message = (
                 b'LIST_CONTENT\0' + 
-                client._get_time().encode('utf-8') + b'\0' +
+                client.get_time().encode('utf-8') + b'\0' +
                 client._user.encode('utf-8') + b'\0' +
                 user.encode('utf-8') + b'\0'
             )

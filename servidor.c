@@ -79,6 +79,7 @@ void treat_request(void *sc_request)
 		pthread_exit(0);
 	}
 
+	printf("El string que me envias es: %s\n", buffer);
 	// OPERACIONES
 	if (strcmp(buffer, "REGISTER") == 0)
 	{
@@ -121,9 +122,9 @@ void treat_request(void *sc_request)
 		}
 		clnt_destroy (clnt);
 
-		// Enviar el código de error de vuelta al cliente en formato red
-		snprintf(error_str, 2, "%d", error);
-		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
+		error_str[0] = '0' + error;
+		error_str[1] = '\0';
+		if (sendMessage(sc, error_str, 2) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -169,11 +170,13 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
+		error_str[0] = '0' + error;
+		error_str[1] = '\0';
+		if (sendMessage(sc, error_str, 2) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
+
 	}
 	else if (strcmp(buffer, "CONNECT") == 0)
 	{
