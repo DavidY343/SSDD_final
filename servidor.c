@@ -228,8 +228,9 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
+		error_str[0] = '0' + error;
+		error_str[1] = '\0';
+		if (sendMessage(sc, error_str, 2) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -293,8 +294,9 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
+		error_str[0] = '0' + error;
+		error_str[1] = '\0';
+		if (sendMessage(sc, error_str, 2) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -349,7 +351,9 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
+		error_str[0] = '0' + error;
+		error_str[1] = '\0';
+		if (sendMessage(sc, error_str, 2) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -395,8 +399,9 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
+		error_str[0] = '0' + error;
+		error_str[1] = '\0';
+		if (sendMessage(sc, error_str, 2) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
@@ -446,15 +451,16 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
+		error_str[0] = '0' + error;
+		error_str[1] = '\0';
+		if (sendMessage(sc, error_str, 2) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
 		int num_digits = snprintf(NULL, 0, "%d", n_user) + 1;
 		n_user_str = (char *)malloc(sizeof(char) * (num_digits + 1));
 		// Enviar el número de usuarios conectados al cliente
-		snprintf(error_str, sizeof(n_user_str), "%d", n_user);
+		snprintf(n_user_str, sizeof(n_user_str), "%d", n_user);
 		if (sendMessage(sc, (char *) &n_user_str, sizeof(n_user_str)) < 0)
 		{
 			perror("Error enviando el número de usuarios");
@@ -552,8 +558,9 @@ void treat_request(void *sc_request)
 		clnt_destroy (clnt);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		snprintf(error_str, sizeof(error_str), "%d", error);
-		if (sendMessage(sc, error_str, strlen(error_str)) < 0)
+		error_str[0] = '0' + error;
+		error_str[1] = '\0';
+		if (sendMessage(sc, error_str, 2) < 0)
 		{
 			printf("Error enviando al socket\n");
 		}
