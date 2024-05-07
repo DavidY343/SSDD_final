@@ -37,6 +37,7 @@ class client :
         response = ''
         while True:
             server_response = socket.recv(1)
+            print(server_response)
             if (server_response == b'\0'):
                 break
             response += server_response.decode()
@@ -288,7 +289,7 @@ class client :
             return client.RC.ANOTHER_CASES
         try:
             if not client._connected:
-                print("LIST_USERS FAIL, USER NOT CONNECTED")
+                print("PUBLISH FAIL, USER NOT CONNECTED")
                 return client.RC.USER_ERROR
             message = (
                 b'PUBLISH\0' + 
@@ -337,7 +338,7 @@ class client :
             return client.RC.ANOTHER_CASES
         try:
             if not client._connected:
-                print("LIST_USERS FAIL, USER NOT CONNECTED")
+                print("DELETE FAIL, USER NOT CONNECTED")
                 return client.RC.USER_ERROR
             message = (
                 b'DELETE\0' + 
@@ -434,7 +435,7 @@ class client :
             return client.RC.ANOTHER_CASES
         try:
             if not client._connected:
-                print("LIST_USERS FAIL, USER NOT CONNECTED")
+                print("LIST_CONTENT FAIL, USER NOT CONNECTED")
                 return client.RC.USER_ERROR
             message = (
                 b'LIST_CONTENT\0' + 
