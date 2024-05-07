@@ -239,9 +239,6 @@ class client :
             print("DISCONNECT FAIL")
             return client.RC.OTHER_CASES
         try:
-            if not client._connected:
-                print("LIST_USERS FAIL, USER NOT CONNECTED")
-                return client.RC.USER_ERROR
             message = (
                 b'DISCONNECT\0' + 
                 client.get_time().encode('utf-8') + b'\0' +
@@ -503,6 +500,9 @@ class client :
             print("GET_FILE FAIL")
             return client.RC.USER_ERROR
         try:
+            if not client._connected:
+                print("GET_FILE FAIL")
+                return client.RC.USER_ERROR
             # Pedir ip y puerto al servidor a partir del nombre de usuario
             message = (
                 b'LIST_USERS\0' + 
