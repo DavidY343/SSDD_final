@@ -405,7 +405,7 @@ void treat_request(void *sc_request)
 			printf("Error enviando al socket\n");
 		}
 	}
-	else if (strcmp(buffer, "LIST_USERS") == 0)
+else if (strcmp(buffer, "LIST_USERS") == 0)
 	{
 		t_response_user *respuesta_user = (t_response_user *) malloc(sizeof(t_response_user));
 		respuesta_user->next = NULL;
@@ -456,19 +456,18 @@ void treat_request(void *sc_request)
 		{
 			printf("Error enviando al socket\n");
 		}
-		n_user_str = (char *)malloc(256);
-		bzero(n_user_str, 256);
+		int num_digits = snprintf(NULL, 0, "%d", n_user) + 1;
+		n_user_str = (char *)malloc(sizeof(char) * (num_digits));
 		// Enviar el número de usuarios conectados al cliente
-		sprintf(n_user_str, "%d", n_user);
-		printf("n_user_str: %s.\n", n_user_str);
-		if (sendMessage(sc, (char *)n_user_str, strlen(n_user_str) + 1) < 0)
+		snprintf(n_user_str, num_digits, "%d", n_user);
+		if (sendMessage(sc, n_user_str, num_digits) < 0)
 		{
 			perror("Error enviando el número de usuarios");
 			close(sc);
 			pthread_exit(0);
 		}
 		free(n_user_str);
-		/*
+
 		// Enviar la información de cada usuario
 		t_response_user *current = respuesta_user;
 		while (current != NULL)
@@ -505,7 +504,7 @@ void treat_request(void *sc_request)
 			temp = current;
 			current = current->next;
 			free(temp);
-		}*/
+		}
 	}
 	else if (strcmp(buffer, "LIST_CONTENT") == 0)
 	{
@@ -574,10 +573,10 @@ void treat_request(void *sc_request)
 			current = current->next;
 		}
 		int num_digits = snprintf(NULL, 0, "%d", file_count) + 1;
-		file_count_str = (char *)malloc(sizeof(char) * (num_digits + 1));	
+		file_count_str = (char *)malloc(sizeof(char) * (num_digits));	
 		// Enviar el número de usuarios conectados al cliente
-		snprintf(file_count_str, (num_digits + 1), "%d", file_count);
-		if (sendMessage(sc, (char *) &file_count_str, sizeof(file_count_str)) < 0)
+		snprintf(file_count_str, (num_digits), "%d", file_count);
+		if (sendMessage(sc, file_count_str, num_digits) < 0)
 		{
 			perror("Error enviando el número de usuarios");
 			close(sc);
