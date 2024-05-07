@@ -37,7 +37,6 @@ class client :
         response = ''
         while True:
             server_response = socket.recv(1)
-            print(server_response)
             if (server_response == b'\0'):
                 break
             response += server_response.decode()
@@ -443,7 +442,7 @@ class client :
             socketS.sendall(message)
             response = client.read_response(socketS)
             #Gestion del resultado
-            if response == 0:
+            if response == '0':
                 # Recibir el contenido del usuario
                 number_of_files = int(client.read_response(socketS))
                 for i in range(number_of_files):
