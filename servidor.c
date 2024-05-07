@@ -79,7 +79,6 @@ void treat_request(void *sc_request)
 		pthread_exit(0);
 	}
 
-	printf("El string que me envias es: %s\n", buffer);
 	// OPERACIONES
 	if (strcmp(buffer, "REGISTER") == 0)
 	{
@@ -163,7 +162,7 @@ void treat_request(void *sc_request)
 			printf("Error initialiting rpc\n");
 			pthread_exit(0);
 		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
 			clnt_perror (clnt, "call failed");
 		}
@@ -221,7 +220,7 @@ void treat_request(void *sc_request)
 			printf("Error initialiting rpc\n");
 			pthread_exit(0);
 		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
 			clnt_perror (clnt, "call failed");
 		}
@@ -392,7 +391,7 @@ void treat_request(void *sc_request)
 			printf("Error initialiting rpc\n");
 			pthread_exit(0);
 		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
 			clnt_perror (clnt, "call failed");
 		}
@@ -444,7 +443,7 @@ void treat_request(void *sc_request)
 			printf("Error initialiting rpc\n");
 			pthread_exit(0);
 		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
 			clnt_perror (clnt, "call failed");
 		}
@@ -460,8 +459,8 @@ void treat_request(void *sc_request)
 		int num_digits = snprintf(NULL, 0, "%d", n_user) + 1;
 		n_user_str = (char *)malloc(sizeof(char) * (num_digits + 1));
 		// Enviar el número de usuarios conectados al cliente
-		snprintf(n_user_str, sizeof(n_user_str), "%d", n_user);
-		if (sendMessage(sc, (char *) &n_user_str, sizeof(n_user_str)) < 0)
+		snprintf(n_user_str, sizeof(num_digits + 1), "%d", n_user);
+		if (sendMessage(sc, (char *) &n_user_str, sizeof(n_user_str) + 1) < 0)
 		{
 			perror("Error enviando el número de usuarios");
 			close(sc);
@@ -551,7 +550,7 @@ void treat_request(void *sc_request)
 			printf("Error initialiting rpc\n");
 			pthread_exit(0);
 		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, NULL, &result_1, clnt);
+		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
 		if (retval_1 != RPC_SUCCESS) {
 			clnt_perror (clnt, "call failed");
 		}
