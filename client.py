@@ -21,7 +21,7 @@ class client :
     _port = -1
     _connected = False
     _user = None
-    _archivos = []
+    _archivos = {}
     _stop_flag = threading.Event()
 
     # ******************** METHODS *******************
@@ -188,10 +188,10 @@ class client :
             server_address = ('', 0)
             server_socket.bind(server_address)
             _, port = server_socket.getsockname()
-
-            # Creacion del hilo
-            server_thread = threading.Thread(target=client.listen_requests, args=(server_socket,))
-            server_thread.start()
+            if self._connected:
+                # Creacion del hilo
+                server_thread = threading.Thread(target=client.listen_requests, args=(server_socket,))
+                server_thread.start()
             
             # Aviso al servidor de que me conecto
             message = (
@@ -215,7 +215,6 @@ class client :
                 return client.RC.ERROR
             elif response == '2':
                 print("USER ALREADY CONNECTED")
-                client._stop_flag.set()
                 return client.RC.USER_ERROR
             else:
                 print("CONNECT FAIL")
@@ -248,7 +247,7 @@ class client :
             response = client.read_response(socketS)
             client._connected = False
             client._user = None
-            client._archivos = []
+            client._archivos = {}
             # Activamos el evento para que el hilo pare
             client._stop_flag.set()
             #Gestion del resultado
@@ -384,7 +383,9 @@ class client :
             #Gestion del resultado
             if response == '0':
                 # Recibir toda la lista de usuarios
-                number_of_users = int(client.read_response(socketS))
+                number_of_userss = client.read_response(socketS)
+                print(number_of_userss)
+                number_of_users = int(number_of_userss)
                 for i in range(number_of_users):
                     users_info = client.read_response(socketS)
                     print("\t" + users_info + "\t", end=" ")
