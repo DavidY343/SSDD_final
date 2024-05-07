@@ -85,7 +85,6 @@ class client :
             )
             socketS.sendall(message)
             response = client.read_response(socketS)
-            print (response)
             #Gestion del resultado
             if response == '0':
                 print("REGISTER OK")
@@ -191,7 +190,7 @@ class client :
             _, port = server_socket.getsockname()
 
             # Creacion del hilo
-            server_thread = threading.Thread(target=client.listen_requests, args=(server_socket))
+            server_thread = threading.Thread(target=client.listen_requests, args=(server_socket,))
             server_thread.start()
             
             # Aviso al servidor de que me conecto
@@ -205,16 +204,16 @@ class client :
             response = client.read_response(socketS)
 
             #Gestion del resultado
-            if response == 0:
+            if response == '0':
                 print("CONNECT OK")
                 client._connected = True
                 client._user = user
                 return client.RC.OK
-            elif response == 1:
+            elif response == '1':
                 print("CONNECT FAIL, USER DOES NOT EXIST")
                 client._stop_flag.set()
                 return client.RC.ERROR
-            elif response == 2:
+            elif response == '2':
                 print("USER ALREADY CONNECTED")
                 client._stop_flag.set()
                 return client.RC.USER_ERROR
@@ -253,13 +252,13 @@ class client :
             # Activamos el evento para que el hilo pare
             client._stop_flag.set()
             #Gestion del resultado
-            if response == 0:
+            if response == '0':
                 print("DISCONNECT OK")
                 return client.RC.OK
-            elif response == 1:
+            elif response == '1':
                 print("DISCONNECT FAIL / USER DOES NOT EXIST")
                 return client.RC.ERROR
-            elif response == 2:
+            elif response == '2':
                 print("DISCONNECT FAIL / USER NOT CONNECTED")
                 return client.RC.USER_ERROR
             else:
@@ -295,17 +294,17 @@ class client :
             )
             socketS.sendall(message)
             response = client.read_response(socketS)
-            if response == 0:
+            if response == '0':
                 print("PUBLISH OK")
                 client._archivos[fileName] = description
                 return client.RC.OK
-            elif response == 1:
+            elif response == '1':
                 print("PUBLISH FAIL, USER DOES NOT EXIST")
                 return client.RC.ERROR
-            elif response == 2:
+            elif response == '2':
                 print("PUBLISH FAIL, USER NOT CONNECTED")
                 return client.RC.USER_ERROR
-            elif response == 3:
+            elif response == '3':
                 print("PUBLISH FAIL, CONTENT ALREDAY PUBLISHED")
                 return client.RC.OTHER_CASES
             else:
@@ -340,18 +339,18 @@ class client :
             )
             socketS.sendall(message)
             response = client.read_response(socketS)
-            if response == 0:
+            if response == '0':
                 print("DELETE OK")
                 if nombre in client._archivos_:
                     del client._archivos[nombre]
                 return client.RC.OK
-            elif response == 1:
+            elif response == '1':
                 print("DELETE FAIL, USER DOES NOT EXIST")
                 return client.RC.ERROR
-            elif response == 2:
+            elif response == '2':
                 print("DELETE FAIL, USER NOT CONNECTED")
                 return client.RC.USER_ERROR
-            elif response == 3:
+            elif response == '3':
                 print("DELETE FAIL, CONTENT NOT PUBLISHED")
                 return client.RC.OTHER_CASES
             else:
@@ -383,9 +382,9 @@ class client :
             socketS.sendall(message)
             response = client.read_response(socketS)
             #Gestion del resultado
-            if response == 0:
+            if response == '0':
                 # Recibir toda la lista de usuarios
-                number_of_users = client.read_response(socketS)
+                number_of_users = int(client.read_response(socketS))
                 for i in range(number_of_users):
                     users_info = client.read_response(socketS)
                     print("\t" + users_info + "\t", end=" ")
@@ -395,10 +394,10 @@ class client :
                     print(users_info + "\n")
                 print("LIST_USERS OK")
                 return client.RC.OK
-            elif response == 1:
+            elif response == '1':
                 print("LIST_USERS FAIL, USER DOES NOT EXIST")
                 return client.RC.ERROR
-            elif response == 2:
+            elif response == '2':
                 print("LIST_USERS FAIL, USER NOT CONNECTED")
                 return client.RC.USER_ERROR
             else:
@@ -432,7 +431,7 @@ class client :
             #Gestion del resultado
             if response == 0:
                 # Recibir el contenido del usuario
-                number_of_files = client.read_response(socketS)
+                number_of_files = int(client.read_response(socketS))
                 for i in range(number_of_files):
                     file_info = client.read_response(socketS)
                     print("\t" + file_info + "\t", end=" ")
@@ -440,13 +439,13 @@ class client :
                     print(file_info)
                 print("LIST_CONTENT OK")
                 return client.RC.OK
-            elif response == 1:
+            elif response == '1':
                 print("LIST_CONTENT FAIL, USER DOES NOT EXIST")
                 return client.RC.ERROR
-            elif response == 2:
+            elif response == '2':
                 print("LIST_CONTENT FAIL, USER NOT CONNECTED")
                 return client.RC.USER_ERROR
-            elif response == 3:
+            elif response == '3':
                 print("LIST_CONTENT FAIL, REMOTE USER DOES NOT EXIST")
                 return client.RC.OTHER_CASES
             else:
@@ -464,7 +463,7 @@ class client :
     # Metodo que solo sirve para procesar la respuesta del servidor cuando pides usuario
     @staticmethod
     def get_data_by_user(socket, user):
-        number_of_users = client.read_response(socket)
+        number_of_users = int(client.read_response(socket))
         for i in range(number_of_users):
             username = client.read_response(socket)
             ip = client.read_response(socket)
@@ -489,15 +488,16 @@ class client :
         try:
             # Pedir ip y puerto al servidor a partir del nombre de usuario
             message = (
-                b'GET_FILE\0' +
-                client.remote_FileName.encode('utf-8') + b'\0'
+                b'LIST_USERS\0' + 
+                client.get_time().encode('utf-8') + b'\0' +
+                client._user.encode('utf-8') + b'\0'
             )
             socketS.sendall(message)
             response = client.read_response(socketS)
             # Procesar la respuesta del servidor
-            if response == 0:
+            if response == '0':
                 data = client.get_data_by_user(socketS, user)
-                if data ==2:
+                if data == 2:
                     print("GET_FILE FAIL")
                     return client.RC.USER_ERROR
                 else:
@@ -517,12 +517,12 @@ class client :
             )
             socketC.sendall(messageC)
             responseC = client.read_response(socketC)
-            if responseC == 0:
+            if responseC == '0':
                 print("GET_FILE OK")
                 file_desc = client.read_response(socketC)
                 client._archivos[local_FileName] = file_desc
                 return client.RC.OK
-            elif responseC == 1:
+            elif responseC == '1':
                 print("GET_FILE FAIL / FILES NOT EXIST")
                 return client.RC.ERROR
             else:
