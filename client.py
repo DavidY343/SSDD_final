@@ -37,6 +37,7 @@ class client :
         response = ''
         while True:
             server_response = socket.recv(1)
+            print(server_response)
             if (server_response == b'\0'):
                 break
             response += server_response.decode()
@@ -391,15 +392,11 @@ class client :
                 client._user.encode('utf-8') + b'\0'
             )
             socketS.sendall(message)
-            response = socketS.recv(1).decode()
-            # response = client.read_response(socketS)
+            response = client.read_response(socketS)
             #Gestion del resultado
             if response == '0':
-                
-                response = socketS.recv(1)
-                number_of_userss = socketS.recv(1).decode()
                 # Recibir toda la lista de usuarios
-                # number_of_userss = client.read_response(socketS)
+                number_of_userss = client.read_response(socketS)
                 print(number_of_userss)
                 number_of_users = int(number_of_userss)
                 for i in range(number_of_users):
