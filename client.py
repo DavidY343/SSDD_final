@@ -51,7 +51,6 @@ class client :
             if server is None:
                 server = client._server
             server_address = (server, port)
-            print('connecting to {} port {}'.format(*server_address))
             socketS.connect(server_address)
             return socketS
         except Exception as e:
@@ -101,7 +100,6 @@ class client :
             return client.RC.USER_ERROR
 
         finally:
-            print('closing socket')
             socketS.close()
 
    
@@ -136,7 +134,6 @@ class client :
             return client.RC.USER_ERROR
 
         finally:
-            print('closing socket')
             socketS.close()
 
     @staticmethod
@@ -227,7 +224,6 @@ class client :
             return client.RC.OTHER_CASES
 
         finally:
-            print('closing socket')
             socketS.close()
     
     @staticmethod
@@ -269,7 +265,6 @@ class client :
             return client.RC.OTHER_CASES
 
         finally:
-            print('closing socket')
             socketS.close()
 
     @staticmethod
@@ -318,7 +313,6 @@ class client :
             return client.RC.ANOTHER_CASES
 
         finally:
-            print('closing socket')
             socketS.close()
 
     @staticmethod
@@ -346,8 +340,8 @@ class client :
             response = client.read_response(socketS)
             if response == '0':
                 print("DELETE OK")
-                if nombre in client._archivos_:
-                    del client._archivos[nombre]
+                if fileName in client._archivos:
+                    del client._archivos[fileName]
                 return client.RC.OK
             elif response == '1':
                 print("DELETE FAIL, USER DOES NOT EXIST")
@@ -368,7 +362,6 @@ class client :
             return client.RC.ANOTHER_CASES
 
         finally:
-            print('closing socket')
             socketS.close()
 
     @staticmethod
@@ -392,9 +385,8 @@ class client :
             #Gestion del resultado
             if response == '0':
                 # Recibir toda la lista de usuarios
-                number_of_userss = client.read_response(socketS)
-                print(number_of_userss)
-                number_of_users = int(number_of_userss)
+                print("LIST_USERS OK")
+                number_of_users = int(client.read_response(socketS))
                 for i in range(number_of_users):
                     users_info = client.read_response(socketS)
                     print("\t" + users_info + "\t", end=" ")
@@ -402,7 +394,6 @@ class client :
                     print(users_info + "\t", end=" ")
                     users_info = client.read_response(socketS)
                     print(users_info + "\n")
-                print("LIST_USERS OK")
                 return client.RC.OK
             elif response == '1':
                 print("LIST_USERS FAIL, USER DOES NOT EXIST")
@@ -419,7 +410,6 @@ class client :
             return client.RC.OTHER_CASES
 
         finally:
-            print('closing socket')
             socketS.close()
 
     @staticmethod
@@ -443,6 +433,7 @@ class client :
             response = client.read_response(socketS)
             #Gestion del resultado
             if response == '0':
+                print("LIST_CONTENT OK")
                 # Recibir el contenido del usuario
                 number_of_files = int(client.read_response(socketS))
                 for i in range(number_of_files):
@@ -450,7 +441,6 @@ class client :
                     print("\t" + file_info + "\t", end=" ")
                     file_info = client.read_response(socketS)
                     print(file_info)
-                print("LIST_CONTENT OK")
                 return client.RC.OK
             elif response == '1':
                 print("LIST_CONTENT FAIL, USER DOES NOT EXIST")
@@ -470,7 +460,6 @@ class client :
             return client.RC.ANOTHER_CASES
 
         finally:
-            print('closing socket')
             socketS.close()
 
     # Metodo que solo sirve para procesar la respuesta del servidor cuando pides usuario
@@ -551,7 +540,6 @@ class client :
             return client.RC.USER_ERROR
 
         finally:
-            print('closing socket')
             socketS.close()
 
     # *
