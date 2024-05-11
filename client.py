@@ -3,6 +3,7 @@ import argparse
 import socket
 import threading
 import zeep
+import os
 
 class client :
 
@@ -21,8 +22,8 @@ class client :
     _port = -1
     _connected = False
     _user = None
-    _archivos = {}
     _stop_flag = threading.Event()
+    _path = "files"
 
     # ******************** METHODS *******************
 
@@ -135,6 +136,22 @@ class client :
 
         finally:
             socketS.close()
+    
+    @staticmethod
+    def leer_archivo(file_name):
+        try:
+            file_path = os.path.join(client._path, file_name)
+
+            with open(file_path, "r") as archivo:
+                contenido = archivo.read()
+            return contenido
+
+        except FileNotFoundError:
+            return 1
+
+        except Exception as e:
+            return 2
+
 
     @staticmethod
     def listen_requests(server_socket):
@@ -150,20 +167,22 @@ class client :
                 op = client.read_response(client_socket)
                 if op == "GET_FILE":
                     file_name = client.read_response(client_socket)
-                    if file_name in client._archivos:
-                        desc = client._archivos[file_name]
+                    # Lee el archivo de file_name y lo guarda en file_content
+                    file_content = client.leer_archivo(file_name)
+
+                    if file_content == 1:
                         message = (
-                            b'0\0' +
-                            desc.encode('utf-8') + b'\0'
-                        )
+                            b'1\0')
+                    elif file_content == 2:
+                        message = (
+                            b'2\0')
                     else:
                         message = (
-                            b'1\0'
-                        )
+                            b'0\0' +
+                            file_content.encode('utf-8') + b'\0')
                 else:
                     message = (
-                        b'2\0'
-                    )
+                        b'2\0')
                 client_socket.sendall(message)
                 client_socket.close()
         except Exception as e:
@@ -247,7 +266,6 @@ class client :
             response = client.read_response(socketS)
             client._connected = False
             client._user = None
-            client._archivos = {}
             # Activamos el evento para que el hilo pare
             client._stop_flag.set()
             #Gestion del resultado
@@ -297,7 +315,6 @@ class client :
             response = client.read_response(socketS)
             if response == '0':
                 print("PUBLISH OK")
-                client._archivos[fileName] = description
                 return client.RC.OK
             elif response == '1':
                 print("PUBLISH FAIL, USER DOES NOT EXIST")
@@ -344,8 +361,6 @@ class client :
             response = client.read_response(socketS)
             if response == '0':
                 print("DELETE OK")
-                if fileName in client._archivos:
-                    del client._archivos[fileName]
                 return client.RC.OK
             elif response == '1':
                 print("DELETE FAIL, USER DOES NOT EXIST")
@@ -485,6 +500,20 @@ class client :
         return 2
 
     @staticmethod
+    def save_content(local_FileName, contenido):
+        try:
+            # Construir la ruta completa al archivo
+            file_path = os.path.join(client._path, local_FileName)
+            
+            # Escribir el contenido en el archivo
+            with open(file_path, "w") as archivo:
+                archivo.write(contenido)
+            return 0
+
+        except Exception as e:
+            return 1
+
+    @staticmethod
     def  getfile(user,  remote_FileName,  local_FileName) :
         socketS = client.connect_socket()
         if socketS is None:
@@ -527,9 +556,15 @@ class client :
             socketC.sendall(messageC)
             responseC = client.read_response(socketC)
             if responseC == '0':
+                # Lee el archivo y tal
+                file_content = client.read_response(socketC)
+                result = client.save_content(local_FileName, file_content)
+
+                if result == 1:
+                    print("GET_FILE FAIL")
+                    return client.RC.USER_ERROR
+
                 print("GET_FILE OK")
-                file_desc = client.read_response(socketC)
-                client._archivos[local_FileName] = file_desc
                 return client.RC.OK
             elif responseC == '1':
                 print("GET_FILE FAIL / FILES NOT EXIST")
@@ -619,13 +654,21 @@ class client :
                     elif(line[0]=="QUIT") :
                         if (len(line) == 1) :
                             # Activamos el evento para que el hilo pare
-                            client._stop_flag.set()
+                            if client._connected:
+                                client._stop_flag.set()
+                                client.disconnect(client._user)
                             #hacer shutdown del socket qyue esta en escuha, se cierra con una excepcion tratandola clientsocket.shutdown y un try except dentro del hilo
                             break
                         else :
                             print("Syntax error. Use: QUIT")
                     else :
                         print("Error: command " + line[0] + " not valid.")
+            except KeyboardInterrupt:
+                print("\nCtrl+C detected. Disconnecting...")
+                if client._connected:
+                    client._stop_flag.set()
+                    client.disconnect(client._user)
+                break
             except Exception as e:
                 print("Exception: " + str(e))
 
