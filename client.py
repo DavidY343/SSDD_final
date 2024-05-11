@@ -295,15 +295,18 @@ class client :
             print("El nombre del archivo excede el tamaño máximo permitido")
             print("PUBLISH FAIL")
             return client.RC.ANOTHER_CASES
+
+        if not client._connected:
+            print("estoy aqui? PUBLISH FAIL, USER NOT CONNECTED")
+            return client.RC.USER_ERROR
+
         socketS = client.connect_socket()
         if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("PUBLISH FAIL")
             return client.RC.ANOTHER_CASES
         try:
-            if not client._connected:
-                print("PUBLISH FAIL, USER NOT CONNECTED")
-                return client.RC.USER_ERROR
+            
             message = (
                 b'PUBLISH\0' + 
                 client.get_time().encode('utf-8') + b'\0' +
@@ -342,15 +345,17 @@ class client :
             print("El nombre del fichero excede el tamaño máximo permitido")
             print("DELETE FAIL")
             return client.RC.ANOTHER_CASES
+
+        if not client._connected:
+            print("DELETE FAIL, USER NOT CONNECTED")
+            return client.RC.USER_ERROR
+
         socketS = client.connect_socket()
         if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("DELETE FAIL")
             return client.RC.ANOTHER_CASES
         try:
-            if not client._connected:
-                print("DELETE FAIL, USER NOT CONNECTED")
-                return client.RC.USER_ERROR
             message = (
                 b'DELETE\0' + 
                 client.get_time().encode('utf-8') + b'\0' +
@@ -385,15 +390,17 @@ class client :
 
     @staticmethod
     def  listusers() :
+
+        if not client._connected:
+            print("LIST_USERS FAIL, USER NOT CONNECTED")
+            return client.RC.USER_ERROR
+
         socketS = client.connect_socket()
         if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("LIST_USERS FAIL")
             return client.RC.OTHER_CASES
         try:
-            if not client._connected:
-                print("LIST_USERS FAIL, USER NOT CONNECTED")
-                return client.RC.USER_ERROR
             message = (
                 b'LIST_USERS\0' + 
                 client.get_time().encode('utf-8') + b'\0' +
@@ -515,15 +522,17 @@ class client :
 
     @staticmethod
     def  getfile(user,  remote_FileName,  local_FileName) :
+
+        if not client._connected:
+            print("GET_FILE FAIL")
+            return client.RC.USER_ERROR
+
         socketS = client.connect_socket()
         if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("GET_FILE FAIL")
             return client.RC.USER_ERROR
         try:
-            if not client._connected:
-                print("GET_FILE FAIL")
-                return client.RC.USER_ERROR
             # Pedir ip y puerto al servidor a partir del nombre de usuario
             message = (
                 b'LIST_USERS\0' + 
