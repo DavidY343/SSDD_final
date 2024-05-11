@@ -28,7 +28,6 @@ pthread_mutex_t mutex_mensaje;
 pthread_cond_t cond_mensaje;
 int not_finished = true;
 char buffer[MAX_VALUE_LENGTH];
-pthread_mutex_t mutex_backend;
 char *ip_rpc;
 
 static int create_client()
@@ -46,6 +45,35 @@ static int create_client()
 	return (0);
 }
 
+static void rpc_llamada(char *print_1_username, char *print_1_operation, char *print_1_date, char *print_1_file)
+{
+	enum clnt_stat retval_1;
+	int result_1;
+
+	if (create_client() == -1)
+	{
+		printf("Error initialiting rpc\n");
+		pthread_exit(0);
+	}
+	retval_1 = print_1(print_1_username, print_1_operation, print_1_date, print_1_file, &result_1, clnt);
+	if (retval_1 != RPC_SUCCESS)
+	{
+		clnt_perror (clnt, "call failed");
+	}
+	clnt_destroy (clnt);
+}
+
+static void send_error(int sc, int error)
+{
+	char error_str[2];
+	error_str[0] = '0' + error;
+	error_str[1] = '\0';
+	if (sendMessage(sc, error_str, 2) < 0)
+	{
+		printf("Error enviando al socket\n");
+	}
+}
+
 // Función para manejar las solicitudes de los clientes
 void treat_request(void *sc_request)
 {
@@ -54,10 +82,8 @@ void treat_request(void *sc_request)
 	not_finished = false;
 	pthread_cond_signal(&cond_mensaje);
 	pthread_mutex_unlock(&mutex_mensaje);
-	enum clnt_stat retval_1;
-	int result_1;
+
 	int error;
-	char error_str[2];
     char *print_1_username = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
     char *print_1_operation = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
     char *print_1_date = (char *)malloc(MAX_VALUE_LENGTH * sizeof(char));
@@ -103,30 +129,14 @@ void treat_request(void *sc_request)
 		sprintf(print_1_username,"%s", buffer);
 		
 		// LLamar al backend para meter en la lista, luego memset para vaciar
-		pthread_mutex_lock(&mutex_backend);
 		error = register_user(buffer);
-		pthread_mutex_unlock(&mutex_backend);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
-		// LLamar al rpc
-		if (create_client() == -1)
-		{
-			printf("Error initialiting rpc\n");
-			pthread_exit(0);
-		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
-		if (retval_1 != RPC_SUCCESS)
-		{
-			printf("retval: %d rpc_succes: %d\n", retval_1, RPC_SUCCESS);
-			clnt_perror (clnt, "call failed");
-		}
-		clnt_destroy (clnt);
 
-		error_str[0] = '0' + error;
-		error_str[1] = '\0';
-		if (sendMessage(sc, error_str, 2) < 0)
-		{
-			printf("Error enviando al socket\n");
-		}
+		// LLamar al rpc
+		rpc_llamada(print_1_username, print_1_operation, print_1_date, "");
+
+		// Enviar el código de error de vuelta al cliente en formato red
+		send_error(sc, error);
 	}
 	else if (strcmp(buffer, "UNREGISTER") == 0)
 	{
@@ -151,30 +161,14 @@ void treat_request(void *sc_request)
 		sprintf(print_1_username,"%s", buffer);
 
 		// LLamar al backend para meter en la lista, luego memset para vaciar
-		pthread_mutex_lock(&mutex_backend);
 		error = unregister_user(buffer);
-		pthread_mutex_unlock(&mutex_backend);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
-
+		
 		// LLamar al rpc
-		if (create_client() == -1)
-		{
-			printf("Error initialiting rpc\n");
-			pthread_exit(0);
-		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
-		if (retval_1 != RPC_SUCCESS) {
-			clnt_perror (clnt, "call failed");
-		}
-		clnt_destroy (clnt);
+		rpc_llamada(print_1_username, print_1_operation, print_1_date, "");
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error_str[0] = '0' + error;
-		error_str[1] = '\0';
-		if (sendMessage(sc, error_str, 2) < 0)
-		{
-			printf("Error enviando al socket\n");
-		}
+		send_error(sc, error);
 
 	}
 	else if (strcmp(buffer, "CONNECT") == 0)
@@ -209,30 +203,14 @@ void treat_request(void *sc_request)
 		sprintf(port,"%s", buffer);
 
 		// LLamar al backend para meter en la lista, luego memset para vaciar
-		pthread_mutex_lock(&mutex_backend);
 		error = connect_user(sc, port, print_1_username);
-		pthread_mutex_unlock(&mutex_backend);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 
 		// LLamar al rpc
-		if (create_client() == -1)
-		{
-			printf("Error initialiting rpc\n");
-			pthread_exit(0);
-		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
-		if (retval_1 != RPC_SUCCESS) {
-			clnt_perror (clnt, "call failed");
-		}
-		clnt_destroy (clnt);
+		rpc_llamada(print_1_username, print_1_operation, print_1_date, "");
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error_str[0] = '0' + error;
-		error_str[1] = '\0';
-		if (sendMessage(sc, error_str, 2) < 0)
-		{
-			printf("Error enviando al socket\n");
-		}
+		send_error(sc, error);
 	}
 	else if (strcmp(buffer, "PUBLISH") == 0)
 	{
@@ -275,30 +253,14 @@ void treat_request(void *sc_request)
 		sprintf(description,"%s", buffer);
 
 		// LLamar al backend para meter en la lista, luego memset para vaciar
-		pthread_mutex_lock(&mutex_backend);
 		error = register_file_from_user(print_1_username, print_1_file, description);
-		pthread_mutex_unlock(&mutex_backend);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 
 		// LLamar al rpc
-		if (create_client() == -1)
-		{
-			printf("Error initialiting rpc\n");
-			pthread_exit(0);
-		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, print_1_file, &result_1, clnt);
-		if (retval_1 != RPC_SUCCESS) {
-			clnt_perror (clnt, "call failed");
-		}
-		clnt_destroy (clnt);
+		rpc_llamada(print_1_username, print_1_operation, print_1_date, print_1_file);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error_str[0] = '0' + error;
-		error_str[1] = '\0';
-		if (sendMessage(sc, error_str, 2) < 0)
-		{
-			printf("Error enviando al socket\n");
-		}
+		send_error(sc, error);
 	}
 	else if (strcmp(buffer, "DELETE") == 0)
 	{
@@ -332,30 +294,14 @@ void treat_request(void *sc_request)
 		sprintf(print_1_file,"%s", buffer);
 
 		// LLamar al backend para meter en la lista, luego memset para vaciar
-		pthread_mutex_lock(&mutex_backend);
 		error = unregister_file_from_user(print_1_username, print_1_file);
-		pthread_mutex_unlock(&mutex_backend);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 
 		// LLamar al rpc
-		if (create_client() == -1)
-		{
-			printf("Error initialiting rpc\n");
-			pthread_exit(0);
-		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, print_1_file, &result_1, clnt);
-		if (retval_1 != RPC_SUCCESS) {
-			clnt_perror (clnt, "call failed");
-		}
-		clnt_destroy (clnt);
+		rpc_llamada(print_1_username, print_1_operation, print_1_date, print_1_file);
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error_str[0] = '0' + error;
-		error_str[1] = '\0';
-		if (sendMessage(sc, error_str, 2) < 0)
-		{
-			printf("Error enviando al socket\n");
-		}
+		send_error(sc, error);
 	}
 	else if (strcmp(buffer, "DISCONNECT") == 0)
 	{
@@ -380,30 +326,14 @@ void treat_request(void *sc_request)
 		sprintf(print_1_username,"%s", buffer);
 
 		// LLamar al backend para meter en la lista, luego memset para vaciar
-		pthread_mutex_lock(&mutex_backend);
 		error = disconnect_user(print_1_username);
-		pthread_mutex_unlock(&mutex_backend);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 
 		// LLamar al rpc
-		if (create_client() == -1)
-		{
-			printf("Error initialiting rpc\n");
-			pthread_exit(0);
-		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
-		if (retval_1 != RPC_SUCCESS) {
-			clnt_perror (clnt, "call failed");
-		}
-		clnt_destroy (clnt);
+		rpc_llamada(print_1_username, print_1_operation, print_1_date, "");
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error_str[0] = '0' + error;
-		error_str[1] = '\0';
-		if (sendMessage(sc, error_str, 2) < 0)
-		{
-			printf("Error enviando al socket\n");
-		}
+		send_error(sc, error);
 	}
 else if (strcmp(buffer, "LIST_USERS") == 0)
 	{
@@ -431,30 +361,14 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 		sprintf(print_1_username,"%s", buffer);
 
 		// LLamar al backend para meter en la lista, luego memset para vaciar
-		pthread_mutex_lock(&mutex_backend);
 		error = list_users(print_1_username, respuesta_user, &n_user);
-		pthread_mutex_unlock(&mutex_backend);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 
 		// LLamar al rpc
-		if (create_client() == -1)
-		{
-			printf("Error initialiting rpc\n");
-			pthread_exit(0);
-		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
-		if (retval_1 != RPC_SUCCESS) {
-			clnt_perror (clnt, "call failed");
-		}
-		clnt_destroy (clnt);
+		rpc_llamada(print_1_username, print_1_operation, print_1_date, "");
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error_str[0] = '0' + error;
-		error_str[1] = '\0';
-		if (sendMessage(sc, error_str, 2) < 0)
-		{
-			printf("Error enviando al socket\n");
-		}
+		send_error(sc, error);
 		if (error != 0)
 		{
 			close(sc);
@@ -543,28 +457,13 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 		sprintf(username2,"%s", buffer);
 
 		// LLamar al backend para meter en la lista, luego memset para vaciar
-		pthread_mutex_lock(&mutex_backend);
-		int error = list_content(print_1_username, respuesta_list, username2);
-		pthread_mutex_unlock(&mutex_backend);
+		int error = list_content(print_1_username, &respuesta_list, username2);
 
-		if (create_client() == -1)
-		{
-			printf("Error initialiting rpc\n");
-			pthread_exit(0);
-		}
-		retval_1 = print_1(print_1_username, print_1_operation, print_1_date, "", &result_1, clnt);
-		if (retval_1 != RPC_SUCCESS) {
-			clnt_perror (clnt, "call failed");
-		}
-		clnt_destroy (clnt);
+		// LLamar al rpc
+		rpc_llamada(print_1_username, print_1_operation, print_1_date, "");
 
 		// Enviar el código de error de vuelta al cliente en formato red
-		error_str[0] = '0' + error;
-		error_str[1] = '\0';
-		if (sendMessage(sc, error_str, 2) < 0)
-		{
-			printf("Error enviando al socket\n");
-		}
+		send_error(sc, error);
 		if (error != 0)
 		{
 			close(sc);
@@ -577,14 +476,12 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 		while (count_ptr != NULL) {
 			if (count_ptr->filename[0] != '\0')
 			{
-				printf("Archivo %s\n", count_ptr->filename);
 				file_count++;
 			}
 			 count_ptr = count_ptr->next;
 		}
 		int num_digits = snprintf(NULL, 0, "%d", file_count) + 1;
-		file_count_str = (char *)malloc(sizeof(char) * (num_digits));	
-		printf("Número de archivos: %d\n", file_count);
+		file_count_str = (char *)malloc(sizeof(char) * (num_digits));
 		// Enviar el número de usuarios conectados al cliente
 		snprintf(file_count_str, (num_digits), "%d", file_count);
 		if (sendMessage(sc, file_count_str, num_digits) < 0)
@@ -599,13 +496,11 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 		t_response_list *send_ptr = respuesta_list;
 		while (send_ptr != NULL)
 		{
-			printf("Enviando archivo %s\n", send_ptr->filename);
 			if (sendMessage(sc, send_ptr->filename, strlen(send_ptr->filename) + 1) < 0)
 			{
 				perror("Error enviando el nombre del archivo");
 				break;
 			}
-			printf("Enviando descripción %s\n", send_ptr->description);
 			if (sendMessage(sc, send_ptr->description, strlen(send_ptr->description) + 1) < 0)
 			{
 				perror("Error enviando la descripción del archivo");
@@ -656,7 +551,6 @@ int main(int argc, char *argv[])
 		return (-1);
 	}
 	pthread_mutex_init(&mutex_mensaje, NULL);
-	pthread_mutex_init(&mutex_backend, NULL);
 	pthread_cond_init(&cond_mensaje, NULL);
 	pthread_attr_init(&t_attr);
 	pthread_attr_setdetachstate(&t_attr, PTHREAD_CREATE_DETACHED);
@@ -742,11 +636,6 @@ int main(int argc, char *argv[])
 		} 
 	}
     if (pthread_mutex_destroy(&mutex_mensaje) != 0)
-	{ 
-        perror("Error en el destroy mutex\n");
-        close (sc);
-    }
-	if (pthread_mutex_destroy(&mutex_backend) != 0)
 	{ 
         perror("Error en el destroy mutex\n");
         close (sc);

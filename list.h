@@ -24,7 +24,6 @@ typedef node_t *List;
 
 
 int init_list();
-int destroy();
 /**
  * @brief  Esta funcion se le pasara un usuario y se le asignara un nodo al usuario
  * a su vez comprobara si el usuario existe o no previamente
@@ -137,7 +136,7 @@ typedef struct s_response_list
  * @retval 3 en caso de que el usuario cuyo contenido se quiere conocer no existe.
  * @retval 4 en cualquier otro caso.
  */
-int list_content(char *username, t_response_list *respuesta, char *username_2);
+int list_content(char *username, t_response_list **respuesta, char *username_2);
 
 
 #endif

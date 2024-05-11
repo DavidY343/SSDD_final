@@ -371,7 +371,7 @@ int list_users(char *username, t_response_user *respuesta, int *n_user) {
     return 1; // Usuario que solicita no encontrado
 }
 
-int list_content(char *username, t_response_list *respuesta, char *username_2)
+int list_content(char *username, t_response_list **respuesta, char *username_2)
 {
     pthread_mutex_lock(&mutex);
 
@@ -419,8 +419,13 @@ int list_content(char *username, t_response_list *respuesta, char *username_2)
         pthread_mutex_unlock(&mutex);
         return 3; // Usuario cuyo contenido queremos listar no encontrado
     }
-
-    t_response_list *response_current = respuesta;
+    if (!target_user->list_files)
+    {
+        *respuesta = NULL;
+        pthread_mutex_unlock(&mutex);
+        return 0; // No hay archivos publicados por el usuario objetivo
+    }
+    t_response_list *response_current = *respuesta;
     filelist_t *file_current = target_user->list_files;
 
     // Agregar la lista de archivos del usuario objetivo

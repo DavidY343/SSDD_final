@@ -4,7 +4,7 @@ from client import client
 class TestClient(unittest.TestCase):
 
 	client._port = 4242
-	client._server = '172.22.219.110'
+	client._server = '172.28.199.52'
 	# Test básico que prueba a registrar a un usuario
 	def test_a_register_success(self):
 		print('\n\nTEST1\n')
