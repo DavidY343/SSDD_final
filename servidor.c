@@ -408,7 +408,6 @@ void treat_request(void *sc_request)
 else if (strcmp(buffer, "LIST_USERS") == 0)
 	{
 		t_response_user *respuesta_user = (t_response_user *) malloc(sizeof(t_response_user));
-		respuesta_user->next = NULL;
 		int n_user;
 		char *n_user_str;
 		sprintf(print_1_operation,"%s", buffer);
@@ -456,6 +455,11 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 		{
 			printf("Error enviando al socket\n");
 		}
+		if (error != 0)
+		{
+			close(sc);
+			pthread_exit(0);
+		}
 		int num_digits = snprintf(NULL, 0, "%d", n_user) + 1;
 		n_user_str = (char *)malloc(sizeof(char) * (num_digits));
 		// Enviar el número de usuarios conectados al cliente
@@ -469,11 +473,11 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 		free(n_user_str);
 
 		// Enviar la información de cada usuario
-		t_response_user *current = respuesta_user;
-		while (current != NULL)
+		t_response_user *send = respuesta_user;
+		while (send != NULL)
 		{
 			// Enviar el nombre de usuario
-			if (sendMessage(sc, current->username, strlen(current->username) + 1) < 0)
+			if (sendMessage(sc, send->username, strlen(send->username) + 1) < 0)
 			{
 				perror("Error enviando el nombre del usuario");
 				close(sc);
@@ -481,7 +485,7 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 			}
 
 			// Enviar la dirección IP del usuario
-			if (sendMessage(sc, current->ip, strlen(current->ip) + 1) < 0)
+			if (sendMessage(sc, send->ip, strlen(send->ip) + 1) < 0)
 			{
 				perror("Error enviando la dirección IP");
 				close(sc);
@@ -489,20 +493,19 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 			}
 
 			// Enviar el puerto del usuario
-			if (sendMessage(sc, current->port, strlen(current->port) + 1) < 0)
+			if (sendMessage(sc, send->port, strlen(send->port) + 1) < 0)
 			{
 				perror("Error enviando el puerto");
 				close(sc);
 				pthread_exit(0);
 			}
 
-			current = current->next;
+			send = send->next;
 		}
 		t_response_user *temp;
-		current = respuesta_user;
-		while (current != NULL) {
-			temp = current;
-			current = current->next;
+		while (respuesta_user != NULL) {
+			temp = respuesta_user;
+			respuesta_user = respuesta_user->next;
 			free(temp);
 		}
 	}
@@ -510,7 +513,6 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 	{
 		// Asegúrate de asignar memoria para respuesta_list
 		t_response_list *respuesta_list = (t_response_list *) malloc(sizeof(t_response_list));
-		respuesta_list->next = NULL;
 		sprintf(print_1_operation,"%s", buffer);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 		// DATE
@@ -563,17 +565,26 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 		{
 			printf("Error enviando al socket\n");
 		}
-
+		if (error != 0)
+		{
+			close(sc);
+			pthread_exit(0);
+		}
 		// Ahora que tienes el listado, envía el número total de archivos al cliente
 		int file_count = 0;
 		char *file_count_str;
-		t_response_list *current = respuesta_list;
-		while (current != NULL) {
-			file_count++;
-			current = current->next;
+		t_response_list *count_ptr = respuesta_list;
+		while (count_ptr != NULL) {
+			if (count_ptr->filename[0] != '\0')
+			{
+				printf("Archivo %s\n", count_ptr->filename);
+				file_count++;
+			}
+			 count_ptr = count_ptr->next;
 		}
 		int num_digits = snprintf(NULL, 0, "%d", file_count) + 1;
 		file_count_str = (char *)malloc(sizeof(char) * (num_digits));	
+		printf("Número de archivos: %d\n", file_count);
 		// Enviar el número de usuarios conectados al cliente
 		snprintf(file_count_str, (num_digits), "%d", file_count);
 		if (sendMessage(sc, file_count_str, num_digits) < 0)
@@ -585,28 +596,31 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 		free(file_count_str);
 
 		// Luego envía la información de cada archivo
-		current = respuesta_list;
-		while (current != NULL) {
-			if (sendMessage(sc, current->filename, strlen(current->filename) + 1) < 0) {
+		t_response_list *send_ptr = respuesta_list;
+		while (send_ptr != NULL)
+		{
+			printf("Enviando archivo %s\n", send_ptr->filename);
+			if (sendMessage(sc, send_ptr->filename, strlen(send_ptr->filename) + 1) < 0)
+			{
 				perror("Error enviando el nombre del archivo");
 				break;
 			}
-
-			if (sendMessage(sc, current->description, strlen(current->description) + 1) < 0) {
+			printf("Enviando descripción %s\n", send_ptr->description);
+			if (sendMessage(sc, send_ptr->description, strlen(send_ptr->description) + 1) < 0)
+			{
 				perror("Error enviando la descripción del archivo");
 				break;
 			}
 
-			current = current->next;
+			send_ptr = send_ptr->next;
 		}
 
 		// Limpia la memoria al final
 		t_response_list *temp;
-		current = respuesta_list;
-		while (current != NULL)
+		while (respuesta_list != NULL)
 		{
-			temp = current;
-			current = current->next;
+			temp = respuesta_list;
+			respuesta_list = respuesta_list->next;
 			free(temp);
 		}
 	}
