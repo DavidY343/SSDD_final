@@ -79,6 +79,8 @@ int register_user(char *username)
     }
 
     strncpy(new_node->username, username, MAX_VALUE_LENGTH);
+    new_node->ip[0] = '\0';
+    new_node->port[0] = '\0';
     new_node->list_files = NULL;
     new_node->next = messages;
     messages = new_node;
@@ -260,7 +262,9 @@ int register_file_from_user(char *username, char *file, char *description) {
     return 1; // Usuario no encontrado
 }
 
-int unregister_file_from_user(char *username, char *file) {
+#include <stdio.h>
+int unregister_file_from_user(char *username, char *file)
+{
     pthread_mutex_lock(&mutex);
     if (!inited_list)
     {
@@ -272,8 +276,10 @@ int unregister_file_from_user(char *username, char *file) {
     node_t *current = messages;
 
     // Buscar al usuario por su nombre
-    while (current) {
-        if (strcmp(current->username, username) == 0) {
+    while (current) 
+    {
+        if (strcmp(current->username, username) == 0)
+        {
             if (strlen(current->ip) == 0) {
                 pthread_mutex_unlock(&mutex);
                 return 2; // Usuario no está conectado
@@ -283,11 +289,15 @@ int unregister_file_from_user(char *username, char *file) {
             filelist_t *file_previous = NULL;
 
             // Buscar el archivo en la lista de archivos
-            while (file_current) {
-                if (strcmp(file_current->filename, file) == 0) {
-                    if (file_previous) {
+            while (file_current)
+            {
+                if (strcmp(file_current->filename, file) == 0)
+                {
+                    if (file_previous)
+                    {
                         file_previous->next = file_current->next;
-                    } else {
+                    } else
+                    {
                         current->list_files = file_current->next; // Eliminar el primer archivo
                     }
 
@@ -295,7 +305,6 @@ int unregister_file_from_user(char *username, char *file) {
                     pthread_mutex_unlock(&mutex);
                     return 0; // Archivo eliminado exitosamente
                 }
-
                 file_previous = file_current;
                 file_current = file_current->next;
             }
@@ -362,16 +371,20 @@ int list_users(char *username, t_response_user *respuesta, int *n_user) {
     return 1; // Usuario que solicita no encontrado
 }
 
-int list_content(char *username, t_response_list *respuesta, char *username_2) {
+int list_content(char *username, t_response_list *respuesta, char *username_2)
+{
     pthread_mutex_lock(&mutex);
 
     node_t *current = messages;
     node_t *target_user = NULL;
 
     // Verificar que el usuario que realiza la operación está conectado
-    while (current) {
-        if (strcmp(current->username, username) == 0) {
-            if (strlen(current->ip) == 0) {
+    while (current)
+    {
+        if (strcmp(current->username, username) == 0)
+        {
+            if (strlen(current->ip) == 0)
+            {
                 pthread_mutex_unlock(&mutex);
                 return 2; // Usuario que realiza la operación no está conectado
             }
@@ -382,15 +395,18 @@ int list_content(char *username, t_response_list *respuesta, char *username_2) {
         current = current->next;
     }
 
-    if (!current) {
+    if (!current)
+    {
         pthread_mutex_unlock(&mutex);
         return 1; // Usuario que realiza la operación no encontrado
     }
 
     // Buscar al usuario cuyos archivos queremos listar
     current = messages;
-    while (current) {
-        if (strcmp(current->username, username_2) == 0) {
+    while (current)
+    {
+        if (strcmp(current->username, username_2) == 0)
+        {
             target_user = current; // Usuario cuyo contenido queremos listar
             break;
         }
@@ -398,7 +414,8 @@ int list_content(char *username, t_response_list *respuesta, char *username_2) {
         current = current->next;
     }
 
-    if (!target_user) {
+    if (!target_user)
+    {
         pthread_mutex_unlock(&mutex);
         return 3; // Usuario cuyo contenido queremos listar no encontrado
     }
@@ -407,11 +424,13 @@ int list_content(char *username, t_response_list *respuesta, char *username_2) {
     filelist_t *file_current = target_user->list_files;
 
     // Agregar la lista de archivos del usuario objetivo
-    while (file_current) {
+    while (file_current)
+    {
         strncpy(response_current->filename, file_current->filename, MAX_VALUE_LENGTH);
         strncpy(response_current->description, file_current->description, MAX_VALUE_LENGTH);
 
-        if (file_current->next) {
+        if (file_current->next)
+        {
             response_current->next = (t_response_list *)malloc(sizeof(t_response_list));
             response_current = response_current->next;
         } else {
@@ -422,5 +441,5 @@ int list_content(char *username, t_response_list *respuesta, char *username_2) {
     }
 
     pthread_mutex_unlock(&mutex);
-    return 0; // Éxito
+    return 0; 
 }
