@@ -18,7 +18,7 @@
 #include <unistd.h>
 #include <ifaddrs.h>
 #include "lines.h"
-#include "mensaje.h"
+#include "../server_rpc/mensaje.h"
 #include "list.h"
 #define MAX_VALUE_LENGTH 256
 
