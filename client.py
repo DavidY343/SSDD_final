@@ -147,9 +147,9 @@ class client :
             while not client._stop_flag.is_set():
                 # Aceptar una conexión entrante
                 client_socket, client_address = server_socket.accept()
-                op = read_response(client_socket)
+                op = client.read_response(client_socket)
                 if op == "GET_FILE":
-                    file_name = read_response(client_socket)
+                    file_name = client.read_response(client_socket)
                     if file_name in client._archivos:
                         desc = client._archivos[file_name]
                         message = (
