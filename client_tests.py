@@ -3,8 +3,8 @@ from client import client
 
 class TestClient(unittest.TestCase):
 
-	client._port = 8080
-	client._server = '127.0.0.1'
+	client._port = 4242
+	client._server = '172.22.219.110'
 	# Test básico que prueba a registrar a un usuario
 	def test_a_register_success(self):
 		print('\n\nTEST1\n')
@@ -139,7 +139,7 @@ class TestClient(unittest.TestCase):
 		result = client.publish('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'test10-descripcion')
 
 		# Desconectarlo para que no de errores después
-		result = client.disconnect('test10-user')
+		client.disconnect('test10-user')
 
 		# Verifica el error
 		self.assertEqual(result, client.RC.ANOTHER_CASES)

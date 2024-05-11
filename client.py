@@ -67,13 +67,13 @@ class client :
 
     @staticmethod
     def register(user) :
+        if client.excede_tamano(user):
+            print("El nombre de usuario excede el tamaño máximo permitido")
+            print("REGISTER FAIL")
+            return client.RC.USER_ERROR
         socketS = client.connect_socket()
         if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
-            print("REGISTER FAIL")
-            return client.RC.USER_ERROR
-        if client.excede_tamano(user):
-            print("El nombre de usuario excede el tamaño máximo permitido")
             print("REGISTER FAIL")
             return client.RC.USER_ERROR
         try:
@@ -138,14 +138,14 @@ class client :
 
     @staticmethod
     def listen_requests(server_socket):
-        server_socket.listen(5)
+        try:
+            server_socket.listen(5)
 
-        # Limpiar el evento
-        client._stop_flag.clear()
+            # Limpiar el evento
+            client._stop_flag.clear()
 
-        while not client._stop_flag.is_set():
-            # Aceptar una conexión entrante
-            try:
+            while not client._stop_flag.is_set():
+                # Aceptar una conexión entrante
                 client_socket, client_address = server_socket.accept()
                 op = read_response(client_socket)
                 if op == "GET_FILE":
@@ -164,13 +164,13 @@ class client :
                     message = (
                         b'2\0'
                     )
-            except Exception as e:
-                message = (
-                    b'2\0'
-                )
-            finally:
                 client_socket.sendall(message)
                 client_socket.close()
+        except Exception as e:
+            print('Error:', e)
+        finally:
+            server_socket.close()
+
 
     @staticmethod
     def connect(user) :
@@ -185,11 +185,7 @@ class client :
             server_address = ('', 0)
             server_socket.bind(server_address)
             _, port = server_socket.getsockname()
-            if client._connected:
-                # Creacion del hilo
-                server_thread = threading.Thread(target=client.listen_requests, args=(server_socket,))
-                server_thread.start()
-            
+
             # Aviso al servidor de que me conecto
             message = (
                 b'CONNECT\0' +
@@ -203,24 +199,32 @@ class client :
             #Gestion del resultado
             if response == '0':
                 print("CONNECT OK")
+
+                # Creacion del hilo
+                server_thread = threading.Thread(target=client.listen_requests, args=(server_socket,))
+                # Para que el hilo sea no joinable
+                server_thread.daemon = True
+                server_thread.start()
+
                 client._connected = True
                 client._user = user
                 return client.RC.OK
             elif response == '1':
                 print("CONNECT FAIL, USER DOES NOT EXIST")
-                client._stop_flag.set()
+                server_socket.close()
                 return client.RC.ERROR
             elif response == '2':
                 print("USER ALREADY CONNECTED")
+                server_socket.close()
                 return client.RC.USER_ERROR
             else:
                 print("CONNECT FAIL")
-                client._stop_flag.set()
+                server_socket.close()
                 return client.RC.OTHER_CASES
         except Exception as e:
             print('Error:', e)
             print("CONNECT FAIL")
-            client._stop_flag.set()
+            server_socket.close()
             return client.RC.OTHER_CASES
 
         finally:
