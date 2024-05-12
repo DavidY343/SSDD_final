@@ -5,8 +5,6 @@ import threading
 import zeep
 import os
 
-import time
-
 class client :
 
     # ******************** TYPES *********************
@@ -71,7 +69,6 @@ class client :
     @staticmethod
     def register(user) :
         if client.excede_tamano(user):
-            print("El nombre de usuario excede el tamaño máximo permitido")
             print("REGISTER FAIL")
             return client.RC.USER_ERROR
         socketS = client.connect_socket()
@@ -188,9 +185,8 @@ class client :
                 client_socket.sendall(message)
                 client_socket.close()
         except Exception as e:
-            print('Error:', e)
+            pass
         finally:
-            print("Cierro el hilo y tal")
             client._server_socket.close()
 
 
@@ -303,7 +299,6 @@ class client :
     @staticmethod
     def  publish(fileName,  description) :
         if client.excede_tamano(fileName):
-            print("El nombre del archivo excede el tamaño máximo permitido")
             print("PUBLISH FAIL")
             return client.RC.ANOTHER_CASES
 
@@ -353,7 +348,6 @@ class client :
     @staticmethod
     def  delete(fileName) :
         if client.excede_tamano(fileName):
-            print("El nombre del fichero excede el tamaño máximo permitido")
             print("DELETE FAIL")
             return client.RC.ANOTHER_CASES
 
@@ -552,8 +546,6 @@ class client :
                 client.get_time().encode('utf-8') + b'\0' +
                 client._user.encode('utf-8') + b'\0'
             )
-            print("He recibido respuesta")
-            time.sleep(5)
             socketS.sendall(message)
             
             response = client.read_response(socketS)

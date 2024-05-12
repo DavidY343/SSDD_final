@@ -506,11 +506,6 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 			send_ptr = send_ptr->next;
 		}
 	}
-	else
-	{
-		printf("Ha habido un error\n");
-		printf("%s\n", buffer);
-	}
 	// Acabar 
 	free(print_1_username);
     free(print_1_operation);
