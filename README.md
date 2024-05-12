@@ -13,10 +13,11 @@ La compilación de nuestro proyecto es sencilla, en caso del código del servido
 •	clean y fclean: Son reglas para limpiar los archivos generados durante la compilación, con fclean eliminando también los binarios.
 •	re: Es una regla para reconstruir todo el proyecto desde cero.
 Todos los archivos .c tienen flags comunes como -Wall -Werror para garantizar un código limpio. Además, se añaden las flags -lpthread o -lrt respectivamente.
-Ejecución
 
 
-## La ejecución del programa se divide en cuatro partes. Primero, se abren cuatro terminales. 
+## Ejecución
+
+La ejecución del programa se divide en cuatro partes. Primero, se abren cuatro terminales. 
 
 En la primera terminal, se ejecuta el servidor RPC con el comando "./servidor_rpc". Aquí se imprimirán todas las peticiones que lleguen al servidor.
 En la siguiente terminal, se ejecuta el servicio web, por ejemplo, "python3 ws-time-service.py". Los mensajes impresos en esta terminal son irrelevantes para el funcionamiento del programa.
