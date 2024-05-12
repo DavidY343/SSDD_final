@@ -320,7 +320,7 @@ int unregister_file_from_user(char *username, char *file)
     return 1; // Usuario no encontrado
 }
 
-int list_users(char *username, t_response_user *respuesta, int *n_user) {
+int list_users(char *username, t_response_user **respuesta, int *n_user) {
     pthread_mutex_lock(&mutex);
 
     node_t *current = messages;
@@ -336,7 +336,7 @@ int list_users(char *username, t_response_user *respuesta, int *n_user) {
             // Si está conectado, recorrer la lista de usuarios conectados y agregarlos a la respuesta
             int user_count = 0;
             node_t *user_current = messages;
-            t_response_user *response_current = respuesta;
+            t_response_user *response_current = *respuesta;
 
             while (user_current) {
                 if (strlen(user_current->ip) > 0) { // Solo agregar usuarios conectados

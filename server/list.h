@@ -115,7 +115,7 @@ typedef struct s_response_user
  * @retval 2 en caso de que el usuario no este conectado.
  * @retval 3 en cualquier otro caso
  */
-int list_users(char *username, t_response_user *respuesta, int *n_user);
+int list_users(char *username, t_response_user **respuesta, int *n_user);
 
 typedef struct s_response_list
 {

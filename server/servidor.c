@@ -361,7 +361,7 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 		sprintf(print_1_username,"%s", buffer);
 
 		// LLamar al backend para meter en la lista, luego memset para vaciar
-		error = list_users(print_1_username, respuesta_user, &n_user);
+		error = list_users(print_1_username, &respuesta_user, &n_user);
 		memset(buffer, 0, MAX_VALUE_LENGTH);
 
 		// LLamar al rpc
@@ -388,7 +388,8 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 
 		// Enviar la información de cada usuario
 		t_response_user *send = respuesta_user;
-		while (send != NULL)
+		int i = 0;
+		while (i < n_user)
 		{
 			// Enviar el nombre de usuario
 			if (sendMessage(sc, send->username, strlen(send->username) + 1) < 0)
@@ -397,7 +398,6 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 				close(sc);
 				pthread_exit(0);
 			}
-
 			// Enviar la dirección IP del usuario
 			if (sendMessage(sc, send->ip, strlen(send->ip) + 1) < 0)
 			{
@@ -405,7 +405,6 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 				close(sc);
 				pthread_exit(0);
 			}
-
 			// Enviar el puerto del usuario
 			if (sendMessage(sc, send->port, strlen(send->port) + 1) < 0)
 			{
@@ -413,15 +412,12 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 				close(sc);
 				pthread_exit(0);
 			}
+			if (send->next != NULL)
+				send = send->next;
 
-			send = send->next;
+			i++;
 		}
-		t_response_user *temp;
-		while (respuesta_user != NULL) {
-			temp = respuesta_user;
-			respuesta_user = respuesta_user->next;
-			free(temp);
-		}
+
 	}
 	else if (strcmp(buffer, "LIST_CONTENT") == 0)
 	{
@@ -508,15 +504,6 @@ else if (strcmp(buffer, "LIST_USERS") == 0)
 			}
 
 			send_ptr = send_ptr->next;
-		}
-
-		// Limpia la memoria al final
-		t_response_list *temp;
-		while (respuesta_list != NULL)
-		{
-			temp = respuesta_list;
-			respuesta_list = respuesta_list->next;
-			free(temp);
 		}
 	}
 	else
