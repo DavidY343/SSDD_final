@@ -152,7 +152,7 @@ class TestClient(unittest.TestCase):
 		# Verifica que se ha publicado
 		self.assertEqual(result, client.RC.OK)
 	
-	"""
+	
 	# Test para comprobar que da error la lista de contenido cuando el usuario no está conectado
 	def test_u_list_content_not_connected_failure(self):
 		print('\n\nTEST21\n')
@@ -163,7 +163,7 @@ class TestClient(unittest.TestCase):
 		# Verifica que se ha publicado
 		self.assertEqual(result, client.RC.USER_ERROR)
 	
-	"""
+	
 	# Test para comprobar que de error la lista de contenido cuando el usuario remoto no existe
 	def test_v_list_content_not_exists_failure(self):
 		print('\n\nTEST22\n')
@@ -182,7 +182,6 @@ class TestClient(unittest.TestCase):
 
 		# Verifica que se ha publicado
 		self.assertEqual(result, client.RC.OTHER_CASES)
-	
 	
 	# Test para comprobar que funciona get file
 	def test_w_get_file_success(self):
@@ -217,7 +216,7 @@ class TestClient(unittest.TestCase):
 		# Verifica que se ha publicado
 		self.assertEqual(result, client.RC.USER_ERROR)
 	
-	"""
+	
 	# Test para comprobar que funciona get file
 	def test_y_get_file_not_exists_failure(self):
 		print('\n\nTEST25\n')
@@ -236,6 +235,6 @@ class TestClient(unittest.TestCase):
 
 		# Verifica que se ha publicado
 		self.assertEqual(result, client.RC.ERROR)
-	"""
+
 if __name__ == '__main__':
 	unittest.main()

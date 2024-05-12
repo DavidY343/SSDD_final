@@ -5,6 +5,8 @@ import threading
 import zeep
 import os
 
+import time
+
 class client :
 
     # ******************** TYPES *********************
@@ -164,7 +166,6 @@ class client :
             while not client._stop_flag.is_set():
                 # Aceptar una conexión entrante
                 client_socket, client_address = client._server_socket.accept()
-                print(client_socket)
                 op = client.read_response(client_socket)
                 if op == "GET_FILE":
                     file_name = client.read_response(client_socket)
@@ -450,15 +451,18 @@ class client :
 
     @staticmethod
     def  listcontent(user) :
+        
+        if not client._connected:
+            print("LIST_CONTENT FAIL, USER NOT CONNECTED")
+            return client.RC.USER_ERROR
+
         socketS = client.connect_socket()
         if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
             print("LIST_CONTENT FAIL")
             return client.RC.ANOTHER_CASES
         try:
-            if not client._connected:
-                print("LIST_CONTENT FAIL, USER NOT CONNECTED")
-                return client.RC.USER_ERROR
+
             message = (
                 b'LIST_CONTENT\0' + 
                 client.get_time().encode('utf-8') + b'\0' +
@@ -548,8 +552,12 @@ class client :
                 client.get_time().encode('utf-8') + b'\0' +
                 client._user.encode('utf-8') + b'\0'
             )
+            print("He recibido respuesta")
+            time.sleep(5)
             socketS.sendall(message)
+            
             response = client.read_response(socketS)
+            
             # Procesar la respuesta del servidor
             if response == '0':
                 data = client.get_data_by_user(socketS, user)
