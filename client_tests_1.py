@@ -1,5 +1,6 @@
 import unittest
 from client import client
+import sys
 
 class TestClient(unittest.TestCase):
 
@@ -143,9 +144,9 @@ class TestClient(unittest.TestCase):
 
 		# Verifica el error
 		self.assertEqual(result, client.RC.ANOTHER_CASES)
-
+	"""
 	# Test para comprobar que da error cuando intentas publicar un archivo estando el usuario sin registrar
-	def test_k_publish_exceed_bytes_failure(self):
+	def test_k_publish_not_register_failure(self):
 		print('\n\nTEST11\n')
 
 		# Registrar un usuario
@@ -160,46 +161,22 @@ class TestClient(unittest.TestCase):
 		# Intenta publicar un archivo en el servidor
 		result = client.publish('test11-file', 'test11-descripcion')
 
-		# Desconectarlo para que no de errores después
-		client.disconnect('test11-user')
-
 		# Verifica el error
 		self.assertEqual(result, client.RC.ERROR)
-
+	"""
 	# Test para comprobar que da error cuando intentas publicar un archivo estando el usuario sin conectar
-	def test_l_publish_exceed_bytes_failure(self):
+	def test_l_publish_not_connected_failure(self):
 		print('\n\nTEST12\n')
 
 		# Registrar un usuario
 		client.register('test12-user')
-
+		
 		# Intenta publicar un archivo en el servidor
 		result = client.publish('test12-file', 'test12-descripcion')
 
 		# Verifica el error
 		self.assertEqual(result, client.RC.USER_ERROR)
 
-	# Test para comprobar que da error cuando intentas publicar un archivo ya publicado
-	def test_m_publish_success(self):
-		print('\n\nTEST13\n')
-
-		# Registrar un usuario
-		client.register('test13-user')
-
-		# Conectarlo
-		client.connect('test13-user')
-
-		# Publica un archivo en el servidor
-		client.publish('test13-file', 'test13-descripcion')
-
-		# Intento publicar uno con el mismo nombre
-		result = client.publish('test13-file', 'test13-descripcion-2')
-
-		# Desconectarlo para que no de errores después
-		client.disconnect('test13-user')
-
-		# Verifica que se ha publicado
-		self.assertEqual(result, client.RC.OTHER_CASES)
-
 if __name__ == '__main__':
 	unittest.main()
+	

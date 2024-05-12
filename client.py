@@ -23,7 +23,7 @@ class client :
     _connected = False
     _user = None
     _stop_flag = threading.Event()
-    _path = "files"
+    _server_socket = None
 
     # ******************** METHODS *******************
 
@@ -140,9 +140,8 @@ class client :
     @staticmethod
     def leer_archivo(file_name):
         try:
-            file_path = os.path.join(client._path, file_name)
 
-            with open(file_path, "r") as archivo:
+            with open(file_name, "r") as archivo:
                 contenido = archivo.read()
             return contenido
 
@@ -154,16 +153,18 @@ class client :
 
 
     @staticmethod
-    def listen_requests(server_socket):
+    def listen_requests():
+        
         try:
-            server_socket.listen(5)
+            client._server_socket.listen(5)
 
             # Limpiar el evento
             client._stop_flag.clear()
 
             while not client._stop_flag.is_set():
                 # Aceptar una conexión entrante
-                client_socket, client_address = server_socket.accept()
+                client_socket, client_address = client._server_socket.accept()
+                print(client_socket)
                 op = client.read_response(client_socket)
                 if op == "GET_FILE":
                     file_name = client.read_response(client_socket)
@@ -188,11 +189,17 @@ class client :
         except Exception as e:
             print('Error:', e)
         finally:
-            server_socket.close()
+            print("Cierro el hilo y tal")
+            client._server_socket.close()
 
 
     @staticmethod
     def connect(user) :
+
+        if client._connected:
+            print("USER ALREADY CONNECTED")
+            return client.RC.USER_ERROR
+
         socketS = client.connect_socket()
         if socketS is None:
             print("Error al crear el socket. No se pudo establecer la conexión.")
@@ -200,10 +207,10 @@ class client :
             return client.RC.OTHER_CASES
         try:
             # Abrir el socket
-            server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_address = ('', 0)
-            server_socket.bind(server_address)
-            _, port = server_socket.getsockname()
+            client._server_socket.bind(server_address)
+            _, port = client._server_socket.getsockname()
 
             # Aviso al servidor de que me conecto
             message = (
@@ -220,7 +227,7 @@ class client :
                 print("CONNECT OK")
 
                 # Creacion del hilo
-                server_thread = threading.Thread(target=client.listen_requests, args=(server_socket,))
+                server_thread = threading.Thread(target=client.listen_requests)
                 # Para que el hilo sea no joinable
                 server_thread.daemon = True
                 server_thread.start()
@@ -230,20 +237,20 @@ class client :
                 return client.RC.OK
             elif response == '1':
                 print("CONNECT FAIL, USER DOES NOT EXIST")
-                server_socket.close()
+                client._server_socket.close()
                 return client.RC.ERROR
             elif response == '2':
                 print("USER ALREADY CONNECTED")
-                server_socket.close()
+                client._server_socket.close()
                 return client.RC.USER_ERROR
             else:
                 print("CONNECT FAIL")
-                server_socket.close()
+                client._server_socket.close()
                 return client.RC.OTHER_CASES
         except Exception as e:
             print('Error:', e)
             print("CONNECT FAIL")
-            server_socket.close()
+            client._server_socket.close()
             return client.RC.OTHER_CASES
 
         finally:
@@ -271,6 +278,8 @@ class client :
             #Gestion del resultado
             if response == '0':
                 print("DISCONNECT OK")
+                client._stop_flag.set()
+                client._server_socket.shutdown(socket.SHUT_RDWR)
                 return client.RC.OK
             elif response == '1':
                 print("DISCONNECT FAIL / USER DOES NOT EXIST")
@@ -287,6 +296,7 @@ class client :
             return client.RC.OTHER_CASES
 
         finally:
+                
             socketS.close()
 
     @staticmethod
@@ -297,7 +307,7 @@ class client :
             return client.RC.ANOTHER_CASES
 
         if not client._connected:
-            print("estoy aqui? PUBLISH FAIL, USER NOT CONNECTED")
+            print("PUBLISH FAIL, USER NOT CONNECTED")
             return client.RC.USER_ERROR
 
         socketS = client.connect_socket()
@@ -326,7 +336,7 @@ class client :
                 print("PUBLISH FAIL, USER NOT CONNECTED")
                 return client.RC.USER_ERROR
             elif response == '3':
-                print("PUBLISH FAIL, CONTENT ALREDAY PUBLISHED")
+                print("PUBLISH FAIL, CONTENT ALREADY PUBLISHED")
                 return client.RC.OTHER_CASES
             else:
                 print("PUBLISH FAIL")
@@ -431,7 +441,7 @@ class client :
                 print("LIST_USERS FAIL")
                 return client.RC.OTHER_CASES
         except Exception as e:
-            print('Error:', e)
+            print('Error en list_users:', e)
             print("LIST_USERS FAIL")
             return client.RC.OTHER_CASES
 
@@ -510,10 +520,9 @@ class client :
     def save_content(local_FileName, contenido):
         try:
             # Construir la ruta completa al archivo
-            file_path = os.path.join(client._path, local_FileName)
             
             # Escribir el contenido en el archivo
-            with open(file_path, "w") as archivo:
+            with open(local_FileName, "w") as archivo:
                 archivo.write(contenido)
             return 0
 
@@ -583,11 +592,12 @@ class client :
                 return client.RC.USER_ERROR
         except Exception as e:
             # El print del error quizás se puede quitar
-            print('Error:', e)
+            print('Error en get_file:', e)
             print("GET_FILE FAIL")
             return client.RC.USER_ERROR
 
         finally:
+            socketC.close()
             socketS.close()
 
     # *
@@ -664,7 +674,6 @@ class client :
                         if (len(line) == 1) :
                             # Activamos el evento para que el hilo pare
                             if client._connected:
-                                client._stop_flag.set()
                                 client.disconnect(client._user)
                             #hacer shutdown del socket qyue esta en escuha, se cierra con una excepcion tratandola clientsocket.shutdown y un try except dentro del hilo
                             break
@@ -675,7 +684,6 @@ class client :
             except KeyboardInterrupt:
                 print("\nCtrl+C detected. Disconnecting...")
                 if client._connected:
-                    client._stop_flag.set()
                     client.disconnect(client._user)
                 break
             except Exception as e:
