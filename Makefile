@@ -32,6 +32,9 @@ $(SERVER_RPC): $(OBJECTS_SVC)
 runs:
 	./servidor
 
+runrpc: 
+	./servidor_rpc
+
 fclean: clean
 	rm -f $(SERVER) $(SERVER_RPC)
 clean:
